@@ -65,4 +65,18 @@
 		</dependency>
 
 	</dependencies>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-checkstyle-plugin</artifactId>
+				<configuration combine.self="override">
+					<configLocation>../etc/checkstyle/config.xml</configLocation>
+					<suppressionsLocation>../etc/checkstyle/suppressions.xml</suppressionsLocation>
+					<headerLocation>../etc/checkstyle/java-header-gpl.txt</headerLocation>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>

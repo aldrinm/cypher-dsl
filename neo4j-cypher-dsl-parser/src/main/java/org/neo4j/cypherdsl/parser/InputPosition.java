@@ -55,9 +55,9 @@ final class InputPosition {
 	@Override
 	public String toString() {
 		return "InputPosition{" +
-			   "offset=" + offset +
-			   ", line=" + line +
-			   ", column=" + column +
-			   '}';
+			"offset=" + offset +
+			", line=" + line +
+			", column=" + column +
+			'}';
 	}
 }

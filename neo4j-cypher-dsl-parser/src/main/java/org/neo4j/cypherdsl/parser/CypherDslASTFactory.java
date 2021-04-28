@@ -45,8 +45,8 @@ import org.neo4j.cypherdsl.core.SymbolicName;
  * @since TBA
  */
 @API(status = INTERNAL, since = "TBA")
-enum CypherDslASTFactory implements ASTFactory
-	<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, NULL, NULL, NULL, NULL, NULL, NULL, NULL, Expression, SymbolicName, Property, NULL, InputPosition> {
+enum CypherDslASTFactory
+	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, NULL, NULL, NULL, NULL, NULL, NULL, NULL, Expression, SymbolicName, Property, NULL, InputPosition> {
 
 	INSTANCE;
 
@@ -73,7 +73,8 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override
-	public NULL newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<NULL> nulls, List<NULL> order,
+	public NULL newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<NULL> nulls,
+		List<NULL> order,
 		Expression skip, Expression limit) {
 		throw new UnsupportedOperationException();
 	}
@@ -103,7 +104,8 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override
-	public Object matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> nulls, Expression where) {
+	public Object matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> nulls,
+		Expression where) {
 		throw new UnsupportedOperationException();
 		/*
 		if(nulls != null && nulls.size() > 0)
@@ -115,7 +117,8 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override
-	public NULL usingIndexHint(InputPosition p, SymbolicName v, String label, List<String> properties, boolean seekOnly) {
+	public NULL usingIndexHint(InputPosition p, SymbolicName v, String label, List<String> properties,
+		boolean seekOnly) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -171,12 +174,14 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL mergeClause(InputPosition p, PatternElement patternElement, List<NULL> nulls, List<MergeActionType> actionTypes) {
+	@Override public NULL mergeClause(InputPosition p, PatternElement patternElement, List<NULL> nulls,
+		List<MergeActionType> actionTypes) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL callClause(InputPosition p, List<String> namespace, String name, List<Expression> arguments, List<NULL> nulls,
+	public NULL callClause(InputPosition p, List<String> namespace, String name, List<Expression> arguments,
+		List<NULL> nulls,
 		Expression where) {
 		throw new UnsupportedOperationException();
 	}
@@ -197,15 +202,16 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public PatternElement everyPathPattern(List<Node> nodes, List<NULL> relationships) {
-		System.out.println(nodes);
-		return nodes.get(0);
+	@Override
+	public PatternElement everyPathPattern(List<Node> nodes, List<NULL> relationships) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Node nodePattern(InputPosition p, SymbolicName v, List<StringPos<InputPosition>> labels, Expression properties) {
+	public Node nodePattern(InputPosition p, SymbolicName v, List<StringPos<InputPosition>> labels,
+		Expression properties) {
 		Node node;
-		if(labels.isEmpty()) {
+		if (labels.isEmpty()) {
 			node = Cypher.anyNode();
 		} else {
 			var primaryLabel = labels.get(0).string;
@@ -214,17 +220,18 @@ enum CypherDslASTFactory implements ASTFactory
 			node = Cypher.node(primaryLabel, additionalLabels);
 		}
 
-		if(v != null) {
+		if (v != null) {
 			node = node.named(v);
 		}
-		if(properties != null) {
+		if (properties != null) {
 			node = node.withProperties((MapExpression) properties);
 		}
 		return node;
 	}
 
 	@Override
-	public NULL relationshipPattern(InputPosition p, boolean left, boolean right, SymbolicName v, List<StringPos<InputPosition>> relTypes,
+	public NULL relationshipPattern(InputPosition p, boolean left, boolean right, SymbolicName v,
+		List<StringPos<InputPosition>> relTypes,
 		NULL aNull, Expression properties, boolean legacyTypeSeparator) {
 		throw new UnsupportedOperationException();
 	}
@@ -234,7 +241,8 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override
-	public NULL loadCsvClause(InputPosition p, boolean headers, Expression source, SymbolicName v, String fieldTerminator) {
+	public NULL loadCsvClause(InputPosition p, boolean headers, Expression source, SymbolicName v,
+		String fieldTerminator) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -300,7 +308,7 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override 
+	@Override
 	public Expression mapLiteral(InputPosition p, List<StringPos<InputPosition>> keys, List<Expression> values) {
 		Object[] keysAndValues = new Object[keys.size() * 2];
 		for (int i = 0; i < keys.size(); i++) {
@@ -319,15 +327,15 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override public Expression or(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).or(((Condition) rhs));
+		return ((Condition) lhs).or((Condition) rhs);
 	}
 
 	@Override public Expression xor(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).xor(((Condition) rhs));
+		return ((Condition) lhs).xor((Condition) rhs);
 	}
 
 	@Override public Expression and(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).and(((Condition) rhs));
+		return ((Condition) lhs).and((Condition) rhs);
 	}
 
 	@Override public Expression ands(List<Expression> exprs) {
@@ -435,7 +443,8 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression functionInvocation(InputPosition p, List<String> namespace, String name, boolean distinct,
+	@Override
+	public Expression functionInvocation(InputPosition p, List<String> namespace, String name, boolean distinct,
 		List<Expression> arguments) {
 		throw new UnsupportedOperationException();
 	}
@@ -445,7 +454,8 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression patternComprehension(InputPosition p, SymbolicName v, PatternElement patternElement, Expression where,
+	@Override public Expression patternComprehension(InputPosition p, SymbolicName v, PatternElement patternElement,
+		Expression where,
 		Expression projection) {
 		throw new UnsupportedOperationException();
 	}
@@ -460,7 +470,8 @@ enum CypherDslASTFactory implements ASTFactory
 	}
 
 	@Override
-	public Expression reduceExpression(InputPosition p, SymbolicName acc, Expression accExpr, SymbolicName v, Expression list,
+	public Expression reduceExpression(InputPosition p, SymbolicName acc, Expression accExpr, SymbolicName v,
+		Expression list,
 		Expression innerExpr) {
 		throw new UnsupportedOperationException();
 	}
@@ -485,7 +496,8 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression existsSubQuery(InputPosition p, List<PatternElement> patternElements, Expression where) {
+	@Override
+	public Expression existsSubQuery(InputPosition p, List<PatternElement> patternElements, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -509,7 +521,8 @@ enum CypherDslASTFactory implements ASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
+	@Override
+	public Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
 		Expression elze) {
 		throw new UnsupportedOperationException();
 	}
