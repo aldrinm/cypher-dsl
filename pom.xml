@@ -373,7 +373,10 @@
 					<configuration>
 						<detectOfflineLinks>false</detectOfflineLinks>
 						<detectJavaApiLink>false</detectJavaApiLink>
-						<source>${java.version}</source>
+						<release>8</release>
+						<additionalOptions>
+							<additionalOption>--release ${java.version}</additionalOption>
+						</additionalOptions>
 						<tags>
 							<tag>
 								<name>soundtrack</name>
