@@ -27,12 +27,13 @@ import java.util.stream.Collectors;
 import org.apiguardian.api.API;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory.NULL;
-import org.neo4j.cypherdsl.core.Condition;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.Functions;
 import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.MapExpression;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.Operations;
 import org.neo4j.cypherdsl.core.PatternElement;
 import org.neo4j.cypherdsl.core.Property;
 import org.neo4j.cypherdsl.core.SymbolicName;
@@ -236,7 +237,8 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL pathLength(InputPosition p, String minLength, String maxLength) {
+	@Override
+	public NULL pathLength(InputPosition p, String minLength, String maxLength) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -259,20 +261,24 @@ enum CypherDslASTFactory
 		return Cypher.name(name);
 	}
 
-	@Override public Expression newParameter(InputPosition p, SymbolicName v) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newParameter(InputPosition p, SymbolicName v) {
+		return Cypher.parameter(v.getValue());
 	}
 
-	@Override public Expression newParameter(InputPosition p, String offset) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newParameter(InputPosition p, String v) {
+		return Cypher.parameter(v);
 	}
 
-	@Override public Expression oldParameter(InputPosition p, SymbolicName v) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression oldParameter(InputPosition p, SymbolicName v) {
+		return Cypher.parameter(v.getValue());
 	}
 
-	@Override public Expression newDouble(InputPosition p, String image) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newDouble(InputPosition p, String image) {
+		return Cypher.literalOf(Double.parseDouble(image));
 	}
 
 	@Override
@@ -288,24 +294,29 @@ enum CypherDslASTFactory
 		return Cypher.literalOf(Long.parseUnsignedLong(image, 8) * (negated ? -1 : 1));
 	}
 
-	@Override public Literal<String> newString(InputPosition p, String image) {
+	@Override
+	public Literal<String> newString(InputPosition p, String image) {
 		return Cypher.literalOf(image);
 	}
 
-	@Override public Expression newTrueLiteral(InputPosition p) {
+	@Override
+	public Expression newTrueLiteral(InputPosition p) {
 		return Cypher.literalTrue();
 	}
 
-	@Override public Expression newFalseLiteral(InputPosition p) {
+	@Override
+	public Expression newFalseLiteral(InputPosition p) {
 		return Cypher.literalFalse();
 	}
 
-	@Override public Expression newNullLiteral(InputPosition p) {
+	@Override
+	public Expression newNullLiteral(InputPosition p) {
 		return Cypher.literalOf(null);
 	}
 
-	@Override public Expression listLiteral(InputPosition p, List<Expression> values) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression listLiteral(InputPosition p, List<Expression> values) {
+		return Cypher.listOf(values.toArray(new Expression[values.size()]));
 	}
 
 	@Override
@@ -318,64 +329,77 @@ enum CypherDslASTFactory
 		return Cypher.mapOf(keysAndValues);
 	}
 
-	@Override public Expression hasLabelsOrTypes(Expression subject, List<StringPos<InputPosition>> labels) {
-		return null;
+	@Override
+	public Expression hasLabelsOrTypes(Expression subject, List<StringPos<InputPosition>> labels) {
+		throw new UnsupportedOperationException();
 	}
 
 	@Override public Property property(Expression subject, StringPos<InputPosition> propertyKeyName) {
 		return subject.property(propertyKeyName.string);
 	}
 
-	@Override public Expression or(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).or((Condition) rhs);
+	@Override
+	public Expression or(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.asCondition().or(rhs.asCondition());
 	}
 
-	@Override public Expression xor(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).xor((Condition) rhs);
+	@Override
+	public Expression xor(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.asCondition().xor(rhs.asCondition());
 	}
 
-	@Override public Expression and(InputPosition p, Expression lhs, Expression rhs) {
-		return ((Condition) lhs).and((Condition) rhs);
+	@Override
+	public Expression and(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.asCondition().and(rhs.asCondition());
 	}
 
-	@Override public Expression ands(List<Expression> exprs) {
+	@Override
+	public Expression ands(List<Expression> exprs) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression not(Expression e) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression not(Expression e) {
+		return e.asCondition().not();
 	}
 
-	@Override public Expression plus(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression plus(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.add(rhs);
 	}
 
-	@Override public Expression minus(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression minus(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.subtract(rhs);
 	}
 
-	@Override public Expression multiply(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression multiply(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.multiply(rhs);
 	}
 
-	@Override public Expression divide(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression divide(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.divide(rhs);
 	}
 
-	@Override public Expression modulo(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression modulo(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.remainder(rhs);
 	}
 
-	@Override public Expression pow(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression pow(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.pow(rhs);
 	}
 
 	@Override public Expression unaryPlus(Expression e) {
-		throw new UnsupportedOperationException();
+		return Operations.plus(e);
 	}
 
-	@Override public Expression unaryMinus(Expression e) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression unaryMinus(Expression e) {
+		return Operations.minus(e);
 	}
 
 	@Override
@@ -383,88 +407,113 @@ enum CypherDslASTFactory
 		return lhs.eq(rhs);
 	}
 
-	@Override public Expression neq(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression neq(InputPosition p, Expression lhs, Expression rhs) {
 		return lhs.ne(rhs);
 	}
 
-	@Override public Expression neq2(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression neq2(InputPosition p, Expression lhs, Expression rhs) {
 		return lhs.ne(rhs);
 	}
 
-	@Override public Expression lte(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression lte(InputPosition p, Expression lhs, Expression rhs) {
 		return lhs.lte(rhs);
 	}
 
-	@Override public Expression gte(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression gte(InputPosition p, Expression lhs, Expression rhs) {
 		return lhs.gte(rhs);
 	}
 
-	@Override public Expression lt(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression lt(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.lt(rhs);
+	}
+
+	@Override
+	public Expression gt(InputPosition p, Expression lhs, Expression rhs) {
 		return lhs.gt(rhs);
 	}
 
-	@Override public Expression gt(InputPosition p, Expression lhs, Expression rhs) {
-		return lhs.gt(rhs);
+	@Override
+	public Expression regeq(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.matches(rhs);
 	}
 
-	@Override public Expression regeq(InputPosition p, Expression lhs, Expression rhs) {
+	@Override
+	public Expression startsWith(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.startsWith(rhs);
+	}
+
+	@Override
+	public Expression endsWith(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.endsWith(rhs);
+	}
+
+	@Override
+	public Expression contains(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.contains(rhs);
+	}
+
+	@Override
+	public Expression in(InputPosition p, Expression lhs, Expression rhs) {
+		return lhs.in(rhs);
+	}
+
+	@Override
+	public Expression isNull(Expression e) {
+		return e.isNull();
+	}
+
+	@Override
+	public Expression listLookup(Expression list, Expression index) {
+		return Cypher.valueAt(list, index);
+	}
+
+	@Override
+	public Expression listSlice(InputPosition p, Expression list, Expression start, Expression end) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression startsWith(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression endsWith(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression contains(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression in(InputPosition p, Expression lhs, Expression rhs) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression isNull(Expression e) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression listLookup(Expression list, Expression index) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression listSlice(InputPosition p, Expression list, Expression start, Expression end) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public Expression newCountStar(InputPosition p) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newCountStar(InputPosition p) {
+		return Functions.count(Cypher.asterisk());
 	}
 
 	@Override
 	public Expression functionInvocation(InputPosition p, List<String> namespace, String name, boolean distinct,
 		List<Expression> arguments) {
-		throw new UnsupportedOperationException();
+
+		String[] parts = new String[namespace.size() + 1];
+		for (int i = 0; i < namespace.size(); i++) {
+			parts[i] = namespace.get(i);
+		}
+		parts[parts.length - 1] = name;
+		return Cypher.call(parts).withArgs(arguments.toArray(Expression[]::new)).asFunction(distinct);
 	}
 
-	@Override public Expression listComprehension(InputPosition p, SymbolicName v, Expression list, Expression where,
+	@Override
+	public Expression listComprehension(InputPosition p, SymbolicName v, Expression list, Expression where,
 		Expression projection) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression patternComprehension(InputPosition p, SymbolicName v, PatternElement patternElement,
+	@Override
+	public Expression patternComprehension(InputPosition p, SymbolicName v, PatternElement patternElement,
 		Expression where,
 		Expression projection) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression filterExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
+	@Override
+	public Expression filterExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression extractExpression(InputPosition p, SymbolicName v, Expression list, Expression where,
+	@Override
+	public Expression extractExpression(InputPosition p, SymbolicName v, Expression list, Expression where,
 		Expression projection) {
 		throw new UnsupportedOperationException();
 	}
@@ -476,23 +525,28 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression allExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
+	@Override
+	public Expression allExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression anyExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
+	@Override
+	public Expression anyExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression noneExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
+	@Override
+	public Expression noneExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression singleExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
+	@Override
+	public Expression singleExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression patternExpression(InputPosition p, PatternElement patternElement) {
+	@Override
+	public Expression patternExpression(InputPosition p, PatternElement patternElement) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -501,33 +555,40 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Expression mapProjection(InputPosition p, SymbolicName v, List<NULL> nulls) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL mapProjectionLiteralEntry(StringPos<InputPosition> property, Expression value) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL mapProjectionProperty(StringPos<InputPosition> property) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL mapProjectionVariable(SymbolicName v) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL mapProjectionAll(InputPosition p) {
+	@Override
+	public Expression mapProjection(InputPosition p, SymbolicName v, List<NULL> nulls) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
+	public NULL mapProjectionLiteralEntry(StringPos<InputPosition> property, Expression value) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public NULL mapProjectionProperty(StringPos<InputPosition> property) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public NULL mapProjectionVariable(SymbolicName v) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public NULL mapProjectionAll(InputPosition p) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public
+	Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
 		Expression elze) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public InputPosition inputPosition(int offset, int line, int column) {
+	@Override
+	public InputPosition inputPosition(int offset, int line, int column) {
 		return new InputPosition(offset, line, column);
 	}
 }

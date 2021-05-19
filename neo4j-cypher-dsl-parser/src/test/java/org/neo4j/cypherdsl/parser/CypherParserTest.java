@@ -84,9 +84,13 @@ class CypherParserTest {
 		@ParameterizedTest
 		@CsvSource({ "1, 1", "-1, -1", "0XF, 15", "0xF, 15", "-0xE, -14", "010, 8", "-010, -8" })
 		void shouldParseIntegers(String input, int expected) {
-			Expression e = CypherParser.parseExpression(input);
-			assertThat(Cypher.returning(e).build().getCypher())
-				.isEqualTo(String.format("RETURN %d", expected));
+			assertExpression(input, String.format("%d", expected));
+		}
+
+		@ParameterizedTest
+		@CsvSource({ "1.1, 1.1", "3.14, 3.14", "6.022E23, 6.022E23", "6.022e+24.0, 6.022E24" })
+		void shouldParseDoubles(String input, String expected) {
+			assertExpression(input, expected);
 		}
 	}
 
@@ -96,13 +100,103 @@ class CypherParserTest {
 		@ParameterizedTest
 		@CsvSource({ "TRUE, true", "true, true", "True, true", "fAlse, false", "FALSE, false" })
 		void shouldParseBooleans(String input, String expected) {
-			Expression e = CypherParser.parseExpression(input);
-			assertThat(Cypher.returning(e).build().getCypher())
-				.isEqualTo(String.format("RETURN %s", expected));
+			assertExpression(input, expected);
 		}
 	}
 
-	void assertNode(Node node, String cypherDslRepresentation) {
+	@Test
+	void shouldParseCount() {
+		assertExpression("Count(*)", "count(*)");
+	}
+
+	@ParameterizedTest
+	@CsvSource({
+		"+1, +1",
+		"+-1, +-1",
+		"-1, -1",
+		"--1, --1",
+		"NOT true, NOT (true)",
+		"2+2, (2 + 2)",
+		"2-2, (2 - 2)",
+		"2*2, (2 * 2)",
+		"2/2, (2 / 2)",
+		"2%2, (2 % 2)",
+		"2^2, 2^2",
+		"n.f <> 1, n.f <> 1",
+		"n.f != 1, n.f <> 1",
+		"n.f = 1, n.f = 1",
+		"n.f <= 1, n.f <= 1",
+		"n.f >= 1, n.f >= 1",
+		"n.f < 1, n.f < 1",
+		"n.f > 1, n.f > 1",
+		"n.f =~ '.*', n.f =~ '.*'",
+		"n.f ends with \"blah\", n.f ENDS WITH 'blah'",
+		"n.f starts with 'blah', n.f STARTS WITH 'blah'",
+		"n.f contains 'blah', n.f CONTAINS 'blah'",
+		"n.f is NULL, n.f IS NULL"
+	})
+	void shouldParseOperatorsAndConditions(String input, String expected) {
+		assertExpression(input, expected);
+	}
+
+	@Test
+	void shouldParseIn() {
+		assertExpression("n in [1,2,3]", "n IN [1, 2, 3]");
+	}
+
+	@ParameterizedTest
+	@CsvSource(value = {
+		"f()| f()",
+		"foo.bar()| foo.bar()",
+		"foo.bar(e)| foo.bar(e)",
+		"foo.bar(e,f)| foo.bar(e, f)",
+		"count(distinct e,f)| count(DISTINCT e, f)"
+	}, delimiterString = "|")
+	void shouldParseFunctionInvocation(String input, String expected) {
+		assertExpression(input, expected);
+	}
+
+	@Nested
+	class Literals {
+
+		@Test
+		void shouldParseListLiteral() {
+			assertExpression("[1,2,a, 'b']", "[1, 2, a, 'b']");
+		}
+
+		@Test
+		void shouldParseLookups() {
+			assertExpression("n[23]", "n[23]");
+		}
+	}
+
+	@Nested
+	class Parameters {
+
+		@Test
+		void newParameterShouldWork() {
+			assertExpression("$foo", "$foo");
+		}
+
+		@Test
+		void newNumberedParameterShouldWork() {
+			assertExpression("$1", "$1");
+		}
+
+		@Test
+		void oldParametersShouldWork() {
+			assertExpression("{foo}", "$foo");
+		}
+	}
+
+	static void assertExpression(String exppression, String expected) {
+
+		Expression e = CypherParser.parseExpression(exppression);
+		assertThat(Cypher.returning(e).build().getCypher())
+			.isEqualTo(String.format("RETURN %s", expected));
+	}
+
+	static void assertNode(Node node, String cypherDslRepresentation) {
 
 		assertThat(Cypher.match(node).returning(Cypher.asterisk()).build().getCypher())
 			.isEqualTo(String.format("MATCH %s RETURN *", cypherDslRepresentation));
