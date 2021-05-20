@@ -20,6 +20,7 @@
 package org.neo4j.cypherdsl.parser;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatIllegalArgumentException;
 
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -32,6 +33,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.RelationshipPattern;
 
 /**
  * @author Michael J. Simons
@@ -75,6 +77,47 @@ class CypherParserTest {
 		void shouldParseProperties() {
 			var node = CypherParser.parseNode("(m {a:'b'})");
 			assertNode(node, "(m {a: 'b'})");
+		}
+	}
+
+	@Nested
+	class RelationshipPatterns {
+
+		@ParameterizedTest
+		@CsvSource(nullValues = "N/A", value = { "N/A, N/A", "N/A, 5", "5, N/A", "5, 10" })
+		void simplePatternWithVariousLengths(Integer minimum, Integer maximimum) {
+			StringBuilder simplePattern = new StringBuilder("(n)-");
+			if (minimum != null || maximimum != null) {
+				simplePattern.append("[*");
+				if (minimum != null) {
+					simplePattern.append(minimum);
+				}
+				simplePattern.append("..");
+				if (maximimum != null) {
+					simplePattern.append(maximimum);
+				}
+				simplePattern.append("]");
+			}
+			simplePattern.append("->(m)");
+			var rel = CypherParser.parseRelationship(simplePattern.toString());
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo(String.format("MATCH %s RETURN *", simplePattern));
+		}
+
+		@ParameterizedTest
+		@CsvSource({ "-,-", "<-,-", "-,->" })
+		void direction(String left, String right) {
+			StringBuilder simplePattern = new StringBuilder("(n)")
+				.append(left)
+				.append(right)
+				.append("(m)");
+			CypherParser.parseRelationship(simplePattern.toString());
+		}
+
+		@Test
+		void pointyThingAtBothSidesIsNotSupported() {
+			assertThatIllegalArgumentException().isThrownBy(() -> CypherParser.parseRelationship("(n)<-->(m)"))
+				.withMessage("Only left-to-right, right-to-left or unidirectional path elements are supported.");
 		}
 	}
 

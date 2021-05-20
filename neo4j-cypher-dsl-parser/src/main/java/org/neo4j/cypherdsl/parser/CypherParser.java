@@ -28,6 +28,7 @@ import org.neo4j.cypher.internal.parser.javacc.CypherCharStream;
 import org.neo4j.cypher.internal.parser.javacc.ParseException;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.RelationshipPattern;
 
 /**
  * @author Michael J. Simons
@@ -49,6 +50,25 @@ public final class CypherParser {
 			getCharStream(input)).NodePattern());
 	}
 
+	/**
+	 * Parses a Cypher fragment describing a relationship into a {@link RelationshipPattern} instance.
+	 *
+	 * @param input A Cypher fragment
+	 * @return A relationship pattern or chain of relationship pattern
+	 */
+	public static RelationshipPattern parseRelationship(String input) {
+
+		return handle(() -> (RelationshipPattern) new Cypher(CypherDslASTFactory.INSTANCE,
+			CypherDslASTExceptionFactory.INSTANCE,
+			getCharStream(input)).Pattern());
+	}
+
+	/**
+	 * Parses a Cypher expression into an {@link Expression}.
+	 *
+	 * @param input A Cypher fragment of an expression
+	 * @return A valid Cypher-DSL expression instance
+	 */
 	public static Expression parseExpression(String input) {
 
 		return handle(() -> (Expression) new Cypher(CypherDslASTFactory.INSTANCE,

@@ -21,6 +21,7 @@ package org.neo4j.cypherdsl.parser;
 
 import static org.apiguardian.api.API.Status.INTERNAL;
 
+import java.nio.file.Path;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -36,6 +37,8 @@ import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.Operations;
 import org.neo4j.cypherdsl.core.PatternElement;
 import org.neo4j.cypherdsl.core.Property;
+import org.neo4j.cypherdsl.core.Relationship;
+import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.SymbolicName;
 
 /**
@@ -47,7 +50,7 @@ import org.neo4j.cypherdsl.core.SymbolicName;
  */
 @API(status = INTERNAL, since = "TBA")
 enum CypherDslASTFactory
-	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, NULL, NULL, NULL, NULL, NULL, NULL, NULL, Expression, SymbolicName, Property, NULL, InputPosition> {
+	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, PathDetails, PathLength, NULL, NULL, NULL, NULL, NULL, Expression, SymbolicName, Property, NULL, InputPosition> {
 
 	INSTANCE;
 
@@ -204,7 +207,7 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public PatternElement everyPathPattern(List<Node> nodes, List<NULL> relationships) {
+	public PatternElement everyPathPattern(List<Node> nodes, List<PathDetails> relationships) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -231,15 +234,17 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public NULL relationshipPattern(InputPosition p, boolean left, boolean right, SymbolicName v,
+	public PathDetails relationshipPattern(InputPosition p, boolean left, boolean right, SymbolicName v,
 		List<StringPos<InputPosition>> relTypes,
-		NULL aNull, Expression properties, boolean legacyTypeSeparator) {
-		throw new UnsupportedOperationException();
+		PathLength pathLength, Expression properties, boolean legacyTypeSeparator) {
+
+		return PathDetails.of(pathLength, left, right);
 	}
 
 	@Override
-	public NULL pathLength(InputPosition p, String minLength, String maxLength) {
-		throw new UnsupportedOperationException();
+	public PathLength pathLength(InputPosition p, String minLength, String maxLength) {
+
+		return PathLength.of(minLength, maxLength);
 	}
 
 	@Override
