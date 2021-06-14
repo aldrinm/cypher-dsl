@@ -33,6 +33,8 @@
 
 	<properties>
 		<java-module-name>org.neo4j.cypherdsl.core</java-module-name>
+		<native.maven.plugin.version>0.9.0</native.maven.plugin.version>
+		<junit.platform.native.version>0.9.0</junit.platform.native.version>
 	</properties>
 
 	<dependencies>
@@ -83,6 +85,49 @@
 			<optional>true</optional>
 		</dependency>
 	</dependencies>
+
+	<profiles>
+		<profile>
+			<id>native</id>
+			<dependencies>
+				<dependency>
+					<groupId>org.graalvm.buildtools</groupId>
+					<artifactId>junit-platform-native</artifactId>
+					<version>${junit.platform.native.version}</version>
+					<scope>test</scope>
+				</dependency>
+			</dependencies>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.graalvm.buildtools</groupId>
+						<artifactId>native-maven-plugin</artifactId>
+						<version>${native.maven.plugin.version}</version>
+						<executions>
+							<execution>
+								<id>test-native</id>
+								<goals>
+									<goal>test</goal>
+								</goals>
+								<phase>test</phase>
+							</execution>
+							<execution>
+								<id>build-native</id>
+								<goals>
+									<goal>build</goal>
+								</goals>
+								<phase>package</phase>
+							</execution>
+						</executions>
+						<configuration>
+							<skip>false</skip>
+							<buildArgs>--no-fallback</buildArgs>
+						</configuration>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+	</profiles>
 
 	<build>
 		<plugins>
