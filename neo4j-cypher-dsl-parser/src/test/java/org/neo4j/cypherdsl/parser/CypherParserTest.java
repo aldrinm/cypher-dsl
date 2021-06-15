@@ -84,17 +84,19 @@ class CypherParserTest {
 	class RelationshipPatterns {
 
 		@ParameterizedTest
-		@CsvSource(nullValues = "N/A", value = { "N/A, N/A", "N/A, 5", "5, N/A", "5, 10" })
-		void simplePatternWithVariousLengths(Integer minimum, Integer maximimum) {
+		@CsvSource(nullValues = "N/A", value = { "N/A, N/A", "N/A, 5", "5, N/A", "5, 10", "-,-" })
+		void simplePatternWithVariousLengths(String minimum, String maximum) {
 			StringBuilder simplePattern = new StringBuilder("(n)-");
-			if (minimum != null || maximimum != null) {
+			if (minimum != null || maximum != null) {
 				simplePattern.append("[*");
-				if (minimum != null) {
+				if (minimum != null && !"-".equals(minimum)) {
 					simplePattern.append(minimum);
 				}
-				simplePattern.append("..");
-				if (maximimum != null) {
-					simplePattern.append(maximimum);
+				if (!"-".equals(maximum)) {
+					simplePattern.append("..");
+					if (maximum != null) {
+						simplePattern.append(maximum);
+					}
 				}
 				simplePattern.append("]");
 			}
@@ -105,19 +107,38 @@ class CypherParserTest {
 		}
 
 		@ParameterizedTest
+		@ValueSource(strings = { "T", "T1|T2", "T1|T2|T3" })
+		void types(String types) {
+			var rel = CypherParser.parseRelationship(String.format("(n)-[:%s]->(m)", types));
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo(String.format("MATCH (n)-[:%s]->(m) RETURN *",
+					Arrays.stream(types.split("\\|")).map(v -> String.format("`%s`", v))
+						.collect(Collectors.joining("|"))));
+		}
+
+		@ParameterizedTest
 		@CsvSource({ "-,-", "<-,-", "-,->" })
 		void direction(String left, String right) {
 			StringBuilder simplePattern = new StringBuilder("(n)")
 				.append(left)
 				.append(right)
 				.append("(m)");
-			CypherParser.parseRelationship(simplePattern.toString());
+			var rel = CypherParser.parseRelationship(simplePattern.toString());
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo(String.format("MATCH %s RETURN *", simplePattern));
 		}
 
 		@Test
 		void pointyThingAtBothSidesIsNotSupported() {
 			assertThatIllegalArgumentException().isThrownBy(() -> CypherParser.parseRelationship("(n)<-->(m)"))
 				.withMessage("Only left-to-right, right-to-left or unidirectional path elements are supported.");
+		}
+
+		@Test
+		void chain() {
+			RelationshipPattern rel = CypherParser.parseRelationship("(n)-->()-->(o)");
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo("MATCH (n)-->()-->(o) RETURN *");
 		}
 	}
 
