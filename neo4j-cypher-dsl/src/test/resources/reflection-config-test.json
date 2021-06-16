@@ -1,0 +1,18 @@
+[
+  {
+    "name": "org.neo4j.cypherdsl.core.NodeLabel",
+    "allDeclaredMethods" : true
+  },
+  {
+    "name" : "org.neo4j.cypherdsl.core.SymbolicName",
+    "allDeclaredMethods" : true
+  },
+  {
+    "name" : "org.neo4j.cypherdsl.core.SortItem",
+    "allDeclaredMethods" : true
+  },
+  {
+    "name" : "java.lang.Enum",
+    "allDeclaredMethods" : true
+  }
+]

@@ -121,7 +121,11 @@
 						</executions>
 						<configuration>
 							<skip>false</skip>
-							<buildArgs>--no-fallback</buildArgs>
+							<buildArgs>
+								<buildArg>--no-fallback</buildArg>
+								<buildArg>-H:ReflectionConfigurationFiles=${project.basedir}/src/test/resources/reflection-config-test.json</buildArg>
+							</buildArgs>
+
 						</configuration>
 					</plugin>
 				</plugins>
