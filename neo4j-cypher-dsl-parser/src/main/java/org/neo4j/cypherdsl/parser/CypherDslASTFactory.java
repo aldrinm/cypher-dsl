@@ -23,6 +23,7 @@ import static org.apiguardian.api.API.Status.INTERNAL;
 
 import scala.util.Either;
 
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,17 +34,25 @@ import org.neo4j.cypher.internal.ast.factory.ASTFactory.NULL;
 import org.neo4j.cypher.internal.ast.factory.ParameterType;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.ExposesPatternLengthAccessors;
+import org.neo4j.cypherdsl.core.ExposesProperties;
 import org.neo4j.cypherdsl.core.ExposesRelationships;
 import org.neo4j.cypherdsl.core.Expression;
+import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Functions;
 import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.MapExpression;
 import org.neo4j.cypherdsl.core.Node;
+import org.neo4j.cypherdsl.core.Operation;
 import org.neo4j.cypherdsl.core.Operations;
 import org.neo4j.cypherdsl.core.Parameter;
 import org.neo4j.cypherdsl.core.PatternElement;
+import org.neo4j.cypherdsl.core.Predicates;
 import org.neo4j.cypherdsl.core.Property;
+import org.neo4j.cypherdsl.core.Relationship;
+import org.neo4j.cypherdsl.core.RelationshipChain;
+import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.SymbolicName;
+import org.neo4j.cypherdsl.core.utils.Assertions;
 
 /**
  * An implementation of Neo4j's {@link ASTFactory} that creates Cypher-DSL AST elements that can be used for creating
@@ -54,7 +63,7 @@ import org.neo4j.cypherdsl.core.SymbolicName;
  */
 @API(status = INTERNAL, since = "TBA")
 enum CypherDslASTFactory
-	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, PathDetails, PathLength, NULL, NULL, NULL, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, NULL, NULL, NULL, NULL, NULL, NULL, InputPosition> {
+	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, PathDetails, PathLength, NULL, Operation, NULL, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, NULL, NULL, NULL, NULL, NULL, NULL, InputPosition> {
 
 	INSTANCE;
 
@@ -134,23 +143,24 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL setClause(InputPosition p, List<NULL> nulls) {
+	@Override public NULL setClause(InputPosition p, List<Operation> nulls) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL setProperty(Property property, Expression value) {
+	@Override
+	public Operation setProperty(Property property, Expression value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL setVariable(SymbolicName symbolicName, Expression value) {
+	@Override public Operation setVariable(SymbolicName symbolicName, Expression value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL addAndSetVariable(SymbolicName symbolicName, Expression value) {
+	@Override public Operation addAndSetVariable(SymbolicName symbolicName, Expression value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL setLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> value) {
+	@Override public Operation setLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> value) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -189,16 +199,28 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public PatternElement namedPattern(SymbolicName v, PatternElement patternElement) {
+	@Override
+	public PatternElement namedPattern(SymbolicName v, PatternElement patternElement) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public PatternElement shortestPathPattern(InputPosition p, PatternElement patternElement) {
-		throw new UnsupportedOperationException();
+	@Override
+	public PatternElement shortestPathPattern(InputPosition p, PatternElement patternElement) {
+
+		Assertions.isInstanceOf(RelationshipPattern.class, patternElement,
+			"Only relationship patterns are supported for the shortestPath function.");
+
+		return new ExpressionAsPatternElementWrapper(
+			FunctionInvocation.create(PatternElementFunctions.SHORTEST_PATH, patternElement));
 	}
 
 	@Override public PatternElement allShortestPathsPattern(InputPosition p, PatternElement patternElement) {
-		throw new UnsupportedOperationException();
+
+		Assertions.isInstanceOf(RelationshipPattern.class, patternElement,
+			"Only relationship patterns are supported for the allShortestPaths function.");
+
+		return new ExpressionAsPatternElementWrapper(
+			FunctionInvocation.create(PatternElementFunctions.ALL_SHORTEST_PATHS, patternElement));
 	}
 
 	@Override
@@ -232,6 +254,24 @@ enum CypherDslASTFactory
 					break;
 				default:
 					throw new IllegalStateException("Unknown direction type: " + pathDetails.getDirection());
+			}
+
+			if (pathDetails.getName() != null) {
+				if (relationshipPattern instanceof Relationship) {
+					relationshipPattern = ((Relationship) relationshipPattern).named(pathDetails.getName());
+				} else if (relationshipPattern instanceof RelationshipChain) {
+					relationshipPattern = ((RelationshipChain) relationshipPattern).named(pathDetails.getName());
+				}
+			}
+
+			if (pathDetails.getProperties() != null) {
+				if (relationshipPattern instanceof ExposesProperties) {
+					relationshipPattern = (ExposesRelationships<?>) ((ExposesProperties) relationshipPattern)
+						.withProperties(pathDetails.getProperties());
+				} else if (relationshipPattern instanceof RelationshipChain) {
+					relationshipPattern = ((RelationshipChain) relationshipPattern)
+						.properties(pathDetails.getProperties());
+				}
 			}
 
 			if (length != null) {
@@ -275,7 +315,7 @@ enum CypherDslASTFactory
 		List<StringPos<InputPosition>> relTypes,
 		PathLength pathLength, Expression properties, boolean legacyTypeSeparator) {
 
-		return PathDetails.of(pathLength, left, right, relTypes);
+		return PathDetails.of(v, pathLength, left, right, relTypes, (MapExpression) properties);
 	}
 
 	@Override
@@ -520,11 +560,13 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Expression mapLiteral(InputPosition p, List<StringPos<InputPosition>> keys, List<Expression> values) {
+	public MapExpression mapLiteral(InputPosition p, List<StringPos<InputPosition>> keys, List<Expression> values) {
 		Object[] keysAndValues = new Object[keys.size() * 2];
-		for (int i = 0; i < keys.size(); i++) {
-			keysAndValues[i] = keys.get(i).string;
-			keysAndValues[i + 1] = values.get(i);
+		int i = 0;
+		Iterator<Expression> valueIterator = values.iterator();
+		for (StringPos<InputPosition> key : keys) {
+			keysAndValues[i++] = key.string;
+			keysAndValues[i++] = valueIterator.next();
 		}
 		return Cypher.mapOf(keysAndValues);
 	}
@@ -534,7 +576,8 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Property property(Expression subject, StringPos<InputPosition> propertyKeyName) {
+	@Override
+	public Property property(Expression subject, StringPos<InputPosition> propertyKeyName) {
 		return subject.property(propertyKeyName.string);
 	}
 
@@ -727,26 +770,39 @@ enum CypherDslASTFactory
 
 	@Override
 	public Expression allExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
-		throw new UnsupportedOperationException();
+
+		Assertions.notNull(where, "all(...) requires a WHERE predicate");
+		return Predicates.all(v).in(list).where(where.asCondition());
 	}
 
 	@Override
 	public Expression anyExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
-		throw new UnsupportedOperationException();
+
+		Assertions.notNull(where, "any(...) requires a WHERE predicate");
+		return Predicates.any(v).in(list).where(where.asCondition());
 	}
 
 	@Override
 	public Expression noneExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
-		throw new UnsupportedOperationException();
+
+		Assertions.notNull(where, "none(...) requires a WHERE predicate");
+		return Predicates.none(v).in(list).where(where.asCondition());
 	}
 
 	@Override
 	public Expression singleExpression(InputPosition p, SymbolicName v, Expression list, Expression where) {
-		throw new UnsupportedOperationException();
+
+		Assertions.notNull(where, "single(...) requires a WHERE predicate");
+		return Predicates.single(v).in(list).where(where.asCondition());
 	}
 
 	@Override
 	public Expression patternExpression(InputPosition p, PatternElement patternElement) {
+
+		if (patternElement instanceof ExpressionAsPatternElementWrapper) {
+			return ((ExpressionAsPatternElementWrapper) patternElement).getExpression();
+		}
+
 		throw new UnsupportedOperationException();
 	}
 

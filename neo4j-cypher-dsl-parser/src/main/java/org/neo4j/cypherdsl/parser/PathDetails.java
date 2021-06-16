@@ -22,7 +22,9 @@ package org.neo4j.cypherdsl.parser;
 import java.util.List;
 
 import org.neo4j.cypher.internal.ast.factory.ASTFactory;
+import org.neo4j.cypherdsl.core.MapExpression;
 import org.neo4j.cypherdsl.core.Relationship.Direction;
+import org.neo4j.cypherdsl.core.SymbolicName;
 
 /**
  * A value object for the details of a path.
@@ -33,8 +35,8 @@ import org.neo4j.cypherdsl.core.Relationship.Direction;
  */
 final class PathDetails {
 
-	static PathDetails of(PathLength length, boolean left, boolean right,
-		List<ASTFactory.StringPos<InputPosition>> relTypes) {
+	static PathDetails of(SymbolicName name, PathLength length, boolean left, boolean right,
+		List<ASTFactory.StringPos<InputPosition>> relTypes, MapExpression properties) {
 
 		if (left && right) {
 			throw new IllegalArgumentException("Only left-to-right, right-to-left or unidirectional path elements are supported.");
@@ -49,8 +51,11 @@ final class PathDetails {
 			direction = Direction.UNI;
 		}
 
-		return new PathDetails(length, direction, relTypes.stream().map(sp -> sp.string).toArray(String[]::new));
+		return new PathDetails(name, length, direction, relTypes.stream().map(sp -> sp.string).toArray(String[]::new),
+			properties);
 	}
+
+	private final SymbolicName name;
 
 	private final PathLength length;
 
@@ -58,10 +63,15 @@ final class PathDetails {
 
 	private final String[] types;
 
-	private PathDetails(PathLength length, Direction direction, String[] types) {
+	private final MapExpression properties;
+
+	private PathDetails(SymbolicName name, PathLength length, Direction direction, String[] types,
+		MapExpression properties) {
+		this.name = name;
 		this.length = length;
 		this.direction = direction;
 		this.types = types;
+		this.properties = properties;
 	}
 
 	public PathLength getLength() {
@@ -74,5 +84,13 @@ final class PathDetails {
 
 	public String[] getTypes() {
 		return types;
+	}
+
+	public MapExpression getProperties() {
+		return this.properties;
+	}
+
+	public SymbolicName getName() {
+		return name;
 	}
 }

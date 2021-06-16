@@ -78,6 +78,12 @@ class CypherParserTest {
 			var node = CypherParser.parseNode("(m {a:'b'})");
 			assertNode(node, "(m {a: 'b'})");
 		}
+
+		@Test
+		void shouldParseManyProperties() {
+			var node = CypherParser.parseNode("(m {a:'b', c: 'd'})");
+			assertNode(node, "(m {a: 'b', c: 'd'})");
+		}
 	}
 
 	@Nested
@@ -139,6 +145,42 @@ class CypherParserTest {
 			RelationshipPattern rel = CypherParser.parseRelationship("(n)-->()-->(o)");
 			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
 				.isEqualTo("MATCH (n)-->()-->(o) RETURN *");
+		}
+
+		@Test
+		void shortestPath() {
+			Expression ex = CypherParser.parseExpression("shortestPath((n:A)-->(o:B))");
+			assertThat(Cypher.returning(ex).build().getCypher())
+				.isEqualTo("RETURN shortestPath((n:`A`)-->(o:`B`))");
+		}
+
+		@Test
+		void allShortestPaths() {
+			Expression ex = CypherParser.parseExpression("allShortestPaths((n:A)-->(o:B))");
+			assertThat(Cypher.returning(ex).build().getCypher())
+				.isEqualTo("RETURN allShortestPaths((n:`A`)-->(o:`B`))");
+		}
+
+		@Test
+		void names() {
+			RelationshipPattern rel = CypherParser.parseRelationship("(n)-[r1]->()-[r2]->(o)");
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo("MATCH (n)-[r1]->()-[r2]->(o) RETURN *");
+		}
+
+		@Test
+		void properties() {
+			RelationshipPattern rel = CypherParser.parseRelationship("(n)-[{a: 'b', c: 'd'}]->(o)");
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo("MATCH (n)-[ {a: 'b', c: 'd'}]->(o) RETURN *");
+		}
+
+		@Test
+		void propertiesOnAChain() {
+			RelationshipPattern rel = CypherParser
+				.parseRelationship("(n)-[r:TYPE{x:'x'}]->(m)-[{a: 'b', c: 'd'}]->(o)");
+			assertThat(Cypher.match(rel).returning(Cypher.asterisk()).build().getCypher())
+				.isEqualTo("MATCH (n)-[r:`TYPE` {x: 'x'}]->(m)-[ {a: 'b', c: 'd'}]->(o) RETURN *");
 		}
 	}
 
@@ -253,9 +295,13 @@ class CypherParserTest {
 		}
 	}
 
-	static void assertExpression(String exppression, String expected) {
+	static void assertExpression(String expression) {
+		assertExpression(expression, expression);
+	}
 
-		Expression e = CypherParser.parseExpression(exppression);
+	static void assertExpression(String expression, String expected) {
+
+		Expression e = CypherParser.parseExpression(expression);
 		assertThat(Cypher.returning(e).build().getCypher())
 			.isEqualTo(String.format("RETURN %s", expected));
 	}
@@ -264,5 +310,45 @@ class CypherParserTest {
 
 		assertThat(Cypher.match(node).returning(Cypher.asterisk()).build().getCypher())
 			.isEqualTo(String.format("MATCH %s RETURN *", cypherDslRepresentation));
+	}
+
+	@Nested
+	class Predicates {
+
+		@Test
+		void any() {
+
+			assertThatIllegalArgumentException()
+				.isThrownBy(() -> CypherParser.parseExpression("any(color IN n.liked_colors)"))
+				.withMessage("any(...) requires a WHERE predicate");
+			assertExpression("any(color IN n.liked_colors WHERE color = 'yellow')");
+		}
+
+		@Test
+		void none() {
+
+			assertThatIllegalArgumentException()
+				.isThrownBy(() -> CypherParser.parseExpression("none(color IN n.liked_colors)"))
+				.withMessage("none(...) requires a WHERE predicate");
+			assertExpression("none(color IN n.liked_colors WHERE color = 'yellow')");
+		}
+
+		@Test
+		void single() {
+
+			assertThatIllegalArgumentException()
+				.isThrownBy(() -> CypherParser.parseExpression("single(color IN n.liked_colors)"))
+				.withMessage("single(...) requires a WHERE predicate");
+			assertExpression("single(color IN n.liked_colors WHERE color = 'yellow')");
+		}
+
+		@Test
+		void all() {
+
+			assertThatIllegalArgumentException()
+				.isThrownBy(() -> CypherParser.parseExpression("all(color IN n.liked_colors)"))
+				.withMessage("all(...) requires a WHERE predicate");
+			assertExpression("all(color IN n.liked_colors WHERE color = 'yellow')");
+		}
 	}
 }
