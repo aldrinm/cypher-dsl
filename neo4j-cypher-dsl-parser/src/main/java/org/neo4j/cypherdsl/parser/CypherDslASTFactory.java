@@ -116,13 +116,6 @@ enum CypherDslASTFactory
 	public Object matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> nulls,
 		Expression where) {
 		throw new UnsupportedOperationException();
-		/*
-		if(nulls != null && nulls.size() > 0)
-			throw new UnsupportedOperationException();
-
-		return Cypher.match(patternElements.toArray(PatternElement[]::new));
-
-		 */
 	}
 
 	@Override
@@ -259,16 +252,16 @@ enum CypherDslASTFactory
 			if (pathDetails.getName() != null) {
 				if (relationshipPattern instanceof Relationship) {
 					relationshipPattern = ((Relationship) relationshipPattern).named(pathDetails.getName());
-				} else if (relationshipPattern instanceof RelationshipChain) {
+				} else {
 					relationshipPattern = ((RelationshipChain) relationshipPattern).named(pathDetails.getName());
 				}
 			}
 
 			if (pathDetails.getProperties() != null) {
 				if (relationshipPattern instanceof ExposesProperties) {
-					relationshipPattern = (ExposesRelationships<?>) ((ExposesProperties) relationshipPattern)
+					relationshipPattern = (ExposesRelationships<?>) ((ExposesProperties<?>) relationshipPattern)
 						.withProperties(pathDetails.getProperties());
-				} else if (relationshipPattern instanceof RelationshipChain) {
+				} else {
 					relationshipPattern = ((RelationshipChain) relationshipPattern)
 						.properties(pathDetails.getProperties());
 				}
@@ -276,10 +269,10 @@ enum CypherDslASTFactory
 
 			if (length != null) {
 				if (length.isUnbounded()) {
-					relationshipPattern = ((ExposesPatternLengthAccessors) relationshipPattern)
+					relationshipPattern = ((ExposesPatternLengthAccessors<?>) relationshipPattern)
 						.unbounded();
 				} else {
-					relationshipPattern = ((ExposesPatternLengthAccessors) relationshipPattern)
+					relationshipPattern = ((ExposesPatternLengthAccessors<?>) relationshipPattern)
 						.length(length.getMinimum(), length.getMaximum());
 				}
 			}
@@ -556,7 +549,7 @@ enum CypherDslASTFactory
 
 	@Override
 	public Expression listLiteral(InputPosition p, List<Expression> values) {
-		return Cypher.listOf(values.toArray(new Expression[values.size()]));
+		return Cypher.listOf(values.toArray(new Expression[0]));
 	}
 
 	@Override
