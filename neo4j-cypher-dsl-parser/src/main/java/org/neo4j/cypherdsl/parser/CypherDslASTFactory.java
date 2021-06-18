@@ -32,6 +32,8 @@ import org.apiguardian.api.API;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory.NULL;
 import org.neo4j.cypher.internal.ast.factory.ParameterType;
+import org.neo4j.cypherdsl.core.Clause;
+import org.neo4j.cypherdsl.core.Clauses;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.ExposesPatternLengthAccessors;
 import org.neo4j.cypherdsl.core.ExposesProperties;
@@ -51,6 +53,8 @@ import org.neo4j.cypherdsl.core.Property;
 import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipChain;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
+import org.neo4j.cypherdsl.core.SortItem;
+import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.utils.Assertions;
 
@@ -63,59 +67,71 @@ import org.neo4j.cypherdsl.core.utils.Assertions;
  */
 @API(status = INTERNAL, since = "TBA")
 enum CypherDslASTFactory
-	implements ASTFactory<NULL, NULL, Object, NULL, NULL, NULL, PatternElement, Node, PathDetails, PathLength, NULL, Operation, NULL, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, NULL, NULL, NULL, NULL, NULL, NULL, InputPosition> {
+	implements
+	ASTFactory<Statement, Statement, Clause, Clause, Expression, SortItem, PatternElement, Node, PathDetails, PathLength, Clause, Operation, NULL, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, NULL, Clause, Statement, Clause, NULL, NULL, InputPosition> {
 
 	INSTANCE;
 
 	@Override
-	public NULL newSingleQuery(List<Object> objects) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL newUnion(InputPosition p, NULL lhs, NULL rhs, boolean all) {
+	public Statement newSingleQuery(List<Clause> objects) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL periodicCommitQuery(InputPosition p, String batchSize, Object loadCsv, List<Object> queryBody) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL useClause(InputPosition p, Expression e) {
+	public Statement newUnion(InputPosition p, Statement lhs, Statement rhs, boolean all) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<NULL> nulls,
-		List<NULL> order,
+	public Statement periodicCommitQuery(InputPosition p, String batchSize, Clause loadCsv, List<Clause> queryBody) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Clause useClause(InputPosition p, Expression e) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Clause newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<Expression> returnItems,
+		List<SortItem> sortItems,
 		Expression skip, Expression limit) {
-		throw new UnsupportedOperationException();
+
+		return Clauses.returning(distinct, returnItems, sortItems, skip, limit);
 	}
 
-	@Override public NULL newReturnItem(InputPosition p, Expression e, SymbolicName v) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newReturnItem(InputPosition p, Expression e, SymbolicName v) {
+		return e.as(v);
 	}
 
-	@Override public NULL newReturnItem(InputPosition p, Expression e, int eStartOffset, int eEndOffset) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Expression newReturnItem(InputPosition p, Expression e, int eStartOffset, int eEndOffset) {
+		return e;
 	}
 
-	@Override public NULL orderDesc(Expression e) {
-		throw new UnsupportedOperationException();
+	@Override
+	public SortItem orderDesc(Expression e) {
+		return e.descending();
 	}
 
-	@Override public NULL orderAsc(Expression e) {
-		throw new UnsupportedOperationException();
+	@Override
+	public SortItem orderAsc(Expression e) {
+		return e.ascending();
 	}
 
-	@Override public NULL withClause(InputPosition p, NULL aNull, Expression where) {
+	@Override
+	public Clause withClause(InputPosition p, Clause aNull, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> nulls,
+	public Clause matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> hints,
 		Expression where) {
-		throw new UnsupportedOperationException();
+		if (hints != null && !hints.isEmpty()) {
+			throw new UnsupportedOperationException();
+		}
+		return Clauses.match(optional, patternElements, where, null);
 	}
 
 	@Override
@@ -132,11 +148,11 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL createClause(InputPosition p, List<PatternElement> patternElements) {
+	@Override public Clause createClause(InputPosition p, List<PatternElement> patternElements) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL setClause(InputPosition p, List<Operation> nulls) {
+	@Override public Clause setClause(InputPosition p, List<Operation> nulls) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -145,45 +161,54 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Operation setVariable(SymbolicName symbolicName, Expression value) {
+	@Override
+	public Operation setVariable(SymbolicName symbolicName, Expression value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Operation addAndSetVariable(SymbolicName symbolicName, Expression value) {
+	@Override
+	public Operation addAndSetVariable(SymbolicName symbolicName, Expression value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Operation setLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> value) {
+	@Override
+	public Operation setLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> value) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL removeClause(InputPosition p, List<NULL> nulls) {
+	@Override
+	public Clause removeClause(InputPosition p, List<NULL> nulls) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL removeProperty(Property property) {
+	@Override
+	public NULL removeProperty(Property property) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL removeLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> labels) {
+	@Override
+	public NULL removeLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> labels) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL deleteClause(InputPosition p, boolean detach, List<Expression> expressions) {
+	@Override
+	public Clause deleteClause(InputPosition p, boolean detach, List<Expression> expressions) {
+		return Clauses.delete(detach, expressions);
+	}
+
+	@Override
+	public Clause unwindClause(InputPosition p, Expression e, SymbolicName v) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL unwindClause(InputPosition p, Expression e, SymbolicName v) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL mergeClause(InputPosition p, PatternElement patternElement, List<NULL> nulls,
+	@Override
+	public Clause mergeClause(InputPosition p, PatternElement patternElement, List<Clause> setClauses,
 		List<MergeActionType> actionTypes) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object callClause(InputPosition p, List<String> namespace, String name, List<Expression> arguments,
+	public Clause callClause(InputPosition p, List<String> namespace, String name, List<Expression> arguments,
 		boolean yieldAll, List<NULL> nulls, Expression where) {
 		throw new UnsupportedOperationException();
 	}
@@ -207,7 +232,8 @@ enum CypherDslASTFactory
 			FunctionInvocation.create(PatternElementFunctions.SHORTEST_PATH, patternElement));
 	}
 
-	@Override public PatternElement allShortestPathsPattern(InputPosition p, PatternElement patternElement) {
+	@Override
+	public PatternElement allShortestPathsPattern(InputPosition p, PatternElement patternElement) {
 
 		Assertions.isInstanceOf(RelationshipPattern.class, patternElement,
 			"Only relationship patterns are supported for the allShortestPaths function.");
@@ -218,6 +244,10 @@ enum CypherDslASTFactory
 
 	@Override
 	public PatternElement everyPathPattern(List<Node> nodes, List<PathDetails> relationships) {
+
+		if (nodes.size() == 1 && relationships.isEmpty()) {
+			return nodes.get(0);
+		}
 
 		if (nodes.isEmpty() || relationships.isEmpty()) {
 			throw new IllegalStateException(
@@ -312,120 +342,128 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public PathLength pathLength(InputPosition p, InputPosition pMin, InputPosition pMax, String minLength, String maxLength) {
+	public PathLength pathLength(InputPosition p, InputPosition pMin, InputPosition pMax, String minLength,
+		String maxLength) {
 		return PathLength.of(minLength, maxLength);
 	}
 
 	@Override
-	public NULL loadCsvClause(InputPosition p, boolean headers, Expression source, SymbolicName v,
+	public Clause loadCsvClause(InputPosition p, boolean headers, Expression source, SymbolicName v,
 		String fieldTerminator) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Object foreachClause(InputPosition p, SymbolicName v, Expression list, List<Object> objects) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL subqueryClause(InputPosition p, NULL subquery) {
+	@Override
+	public Clause foreachClause(InputPosition p, SymbolicName v, Expression list, List<Clause> objects) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL yieldClause(InputPosition p, boolean returnAll, List<NULL> nulls, List<NULL> orderBy, Expression skip,
+	public Clause subqueryClause(InputPosition p, Statement subquery) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override
+	public Clause yieldClause(InputPosition p, boolean returnAll, List<Expression> returnItems, List<SortItem> orderBy,
+		Expression skip,
 		Expression limit, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object showIndexClause(InputPosition p, String indexType, boolean brief, boolean verbose, Expression where,
+	public Clause showIndexClause(InputPosition p, String indexType, boolean brief, boolean verbose, Expression where,
 		boolean hasYield) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object showConstraintClause(InputPosition p, String constraintType, boolean brief, boolean verbose,
+	public Clause showConstraintClause(InputPosition p, String constraintType, boolean brief, boolean verbose,
 		Expression where, boolean hasYield) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object showProcedureClause(InputPosition p, boolean currentUser, String user, Expression where,
+	public Clause showProcedureClause(InputPosition p, boolean currentUser, String user, Expression where,
 		boolean hasYield) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Object showFunctionClause(InputPosition p, String functionType, boolean currentUser, String user,
+	public Clause showFunctionClause(InputPosition p, String functionType, boolean currentUser, String user,
 		Expression where, boolean hasYield) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL useGraph(NULL aNull, NULL aNull2) {
+	public Statement useGraph(Statement command, Clause useGraph) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL hasCatalog(NULL aNull) {
+	public Statement hasCatalog(Statement command) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL createRole(InputPosition p, boolean replace, Either<String, Parameter<?>> roleName, Either<String, Parameter<?>> fromRole, boolean ifNotExists) {
+	public Statement createRole(InputPosition p, boolean replace, Either<String, Parameter<?>> roleName,
+		Either<String, Parameter<?>> fromRole, boolean ifNotExists) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL dropRole(InputPosition p, Either<String, Parameter<?>> roleName, boolean ifExists) {
+	public Statement dropRole(InputPosition p, Either<String, Parameter<?>> roleName, boolean ifExists) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL renameRole(InputPosition p, Either<String, Parameter<?>> fromRoleName,
+	public Statement renameRole(InputPosition p, Either<String, Parameter<?>> fromRoleName,
 		Either<String, Parameter<?>> toRoleName, boolean ifExists) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL showRoles(InputPosition p, boolean withUsers, boolean showAll, NULL yieldExpr, NULL returnWithoutGraph, Expression where) {
+	public Statement showRoles(InputPosition p, boolean withUsers, boolean showAll, Clause yieldExpr,
+		Clause returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL grantRoles(InputPosition p, List<Either<String, Parameter<?>>> roles,
+	@Override public Statement grantRoles(InputPosition p, List<Either<String, Parameter<?>>> roles,
 		List<Either<String, Parameter<?>>> users) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL revokeRoles(InputPosition p, List<Either<String, Parameter<?>>> roles,
+	@Override public Statement revokeRoles(InputPosition p, List<Either<String, Parameter<?>>> roles,
 		List<Either<String, Parameter<?>>> users) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL createUser(InputPosition p, boolean replace, boolean ifNotExists, Either<String, Parameter<?>> username,
+	public Statement createUser(InputPosition p, boolean replace, boolean ifNotExists,
+		Either<String, Parameter<?>> username,
 		Expression password, boolean encrypted, boolean changeRequired, Boolean suspended,
 		Either<String, Parameter<?>> homeDatabase) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL dropUser(InputPosition p, boolean ifExists, Either<String, Parameter<?>> username) {
+	public Statement dropUser(InputPosition p, boolean ifExists, Either<String, Parameter<?>> username) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL renameUser(InputPosition p, Either<String, Parameter<?>> fromUserName,
+	public Statement renameUser(InputPosition p, Either<String, Parameter<?>> fromUserName,
 		Either<String, Parameter<?>> toUserName, boolean ifExists) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL setOwnPassword(InputPosition p, Expression currentPassword, Expression newPassword) {
+	public Statement setOwnPassword(InputPosition p, Expression currentPassword, Expression newPassword) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL alterUser(InputPosition p, boolean ifExists, Either<String, Parameter<?>> username, Expression password,
+	public Statement alterUser(InputPosition p, boolean ifExists, Either<String, Parameter<?>> username,
+		Expression password,
 		boolean encrypted, Boolean changeRequired, Boolean suspended, Either<String, Parameter<?>> homeDatabase,
 		boolean removeHome) {
 		throw new UnsupportedOperationException();
@@ -439,34 +477,39 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL showUsers(InputPosition p, NULL yieldExpr, NULL returnWithoutGraph, Expression where) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL showCurrentUser(InputPosition p, NULL yieldExpr, NULL returnWithoutGraph, Expression where) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL createDatabase(InputPosition p, boolean replace, Either<String, Parameter<?>> databaseName,
-		boolean ifNotExists, NULL aNull, Either<Map<String, Expression>, Parameter<?>> options) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override public NULL dropDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, boolean ifExists,
-		boolean dumpData, NULL wait) {
+	@Override
+	public Statement showUsers(InputPosition p, Clause yieldExpr, Clause returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL showDatabase(InputPosition p, NULL aNull, NULL yieldExpr, NULL returnWithoutGraph, Expression where) {
+	public Statement showCurrentUser(InputPosition p, Clause yieldExpr, Clause returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL startDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, NULL wait) {
+	@Override
+	public Statement createDatabase(InputPosition p, boolean replace, Either<String, Parameter<?>> databaseName,
+		boolean ifNotExists, NULL aNull, Either<Map<String, Expression>, Parameter<?>> options) {
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public NULL stopDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, NULL wait) {
+	@Override
+	public Statement dropDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, boolean ifExists,
+		boolean dumpData, NULL wait) {
+		return null;
+	}
+
+	@Override
+	public Statement showDatabase(InputPosition p, NULL scope, Clause yieldExpr, Clause returnWithoutGraph,
+		Expression where) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override public Statement startDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, NULL wait) {
+		throw new UnsupportedOperationException();
+	}
+
+	@Override public Statement stopDatabase(InputPosition p, Either<String, Parameter<?>> databaseName, NULL wait) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -830,8 +873,7 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public
-	Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
+	public Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
 		Expression elze) {
 		throw new UnsupportedOperationException();
 	}

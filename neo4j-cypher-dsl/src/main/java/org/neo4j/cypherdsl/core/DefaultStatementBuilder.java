@@ -1457,8 +1457,7 @@ class DefaultStatementBuilder implements StatementBuilder,
 		}
 
 		Match buildMatch() {
-			Pattern pattern = new Pattern(this.patternList);
-			return new Match(optional, pattern, conditionBuilder.buildCondition().map(Where::new).orElse(null), hints);
+			return (Match) Clauses.match(optional, this.patternList, conditionBuilder.buildCondition().orElse(null), hints);
 		}
 	}
 
@@ -1856,6 +1855,12 @@ class DefaultStatementBuilder implements StatementBuilder,
 
 		protected void orderBy(SortItem... sortItem) {
 			this.sortItemList.addAll(Arrays.asList(sortItem));
+		}
+
+		protected void orderBy(Collection<SortItem> sortItems) {
+			if (sortItems != null) {
+				this.sortItemList.addAll(sortItems);
+			}
 		}
 
 		protected void orderBy(Expression expression) {

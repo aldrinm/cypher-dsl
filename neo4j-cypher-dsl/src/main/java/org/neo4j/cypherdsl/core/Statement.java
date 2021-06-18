@@ -22,6 +22,7 @@ import static org.apiguardian.api.API.Status.EXPERIMENTAL;
 import static org.apiguardian.api.API.Status.INTERNAL;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
 
 import org.apiguardian.api.API;
@@ -31,6 +32,7 @@ import org.neo4j.cypherdsl.core.StatementBuilder.OngoingStandaloneCallWithoutArg
 import org.neo4j.cypherdsl.core.ast.Visitable;
 import org.neo4j.cypherdsl.core.internal.ProcedureName;
 import org.neo4j.cypherdsl.core.internal.StatementContext;
+import org.neo4j.cypherdsl.core.utils.Assertions;
 
 /**
  * Shall be the common interfaces for queries that we support.
@@ -52,6 +54,21 @@ public interface Statement extends Visitable {
 	static StatementBuilder builder() {
 
 		return new DefaultStatementBuilder();
+	}
+
+	/**
+	 * Creates a statement based on a list of {@link Clause clauses}. It is your task to provide a sanity check of the
+	 * clauses. The builder will use the clauses "as is", neither change their order nor their type.
+	 *
+	 * @param clauses A list of clauses, must not be null
+	 * @return A statement
+	 * @since TBA
+	 */
+	@NotNull
+	static Statement of(@NotNull List<Clause> clauses) {
+
+		Assertions.notNull(clauses, "Clauses must not be null.");
+		return new ClausesBasedStatement(clauses);
 	}
 
 	/**

@@ -18,9 +18,18 @@
  */
 package org.neo4j.cypherdsl.core;
 
+import static org.apiguardian.api.API.Status.EXPERIMENTAL;
+
+import org.apiguardian.api.API;
+import org.neo4j.cypherdsl.core.ast.Visitable;
+
 /**
+ * This is a marker interface for top level clauses.
+ *
  * @author Michael J. Simons
- * @since 1.0
+ * @soundtrack Chingon - Mexican Spaghetti Western
+ * @since TBA
  */
-interface ReadingClause extends Clause {
+@API(status = EXPERIMENTAL, since = "TBA")
+public interface Clause extends Visitable {
 }

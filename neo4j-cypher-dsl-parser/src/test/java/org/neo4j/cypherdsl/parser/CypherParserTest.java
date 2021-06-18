@@ -41,52 +41,6 @@ import org.neo4j.cypherdsl.core.RelationshipPattern;
 class CypherParserTest {
 
 	@Nested
-	class Nodes {
-
-		@Test
-		void shouldParseAnyNode() {
-
-			var node = CypherParser.parseNode("()");
-			assertNode(node, "()");
-		}
-
-		@ParameterizedTest
-		@ValueSource(strings = { ":`A`", ":A", ":A:B", ":A:`B`:C" })
-		void shouldParseNodeWithLabels(String labels) {
-
-			var node = CypherParser.parseNode(String.format("(%s)", labels));
-			var expected = Arrays.stream(labels.split(":")).filter(l -> !l.isEmpty())
-				.map(l -> l.startsWith("`") ? l : "`" + l + "`").collect(
-					Collectors.joining(":", "(:", ")"));
-			assertNode(node, expected);
-		}
-
-		@Test
-		void shouldParseNodeWithName() {
-			var node = CypherParser.parseNode("(m)");
-			assertNode(node, "(m)");
-		}
-
-		@Test
-		void shouldParseNodeWithNameAndLabel() {
-			var node = CypherParser.parseNode("(m:Movie)");
-			assertNode(node, "(m:`Movie`)");
-		}
-
-		@Test
-		void shouldParseProperties() {
-			var node = CypherParser.parseNode("(m {a:'b'})");
-			assertNode(node, "(m {a: 'b'})");
-		}
-
-		@Test
-		void shouldParseManyProperties() {
-			var node = CypherParser.parseNode("(m {a:'b', c: 'd'})");
-			assertNode(node, "(m {a: 'b', c: 'd'})");
-		}
-	}
-
-	@Nested
 	class RelationshipPatterns {
 
 		@ParameterizedTest
@@ -184,65 +138,9 @@ class CypherParserTest {
 		}
 	}
 
-	@Nested
-	class Numbers {
-
-		@ParameterizedTest
-		@CsvSource({ "1, 1", "-1, -1", "0XF, 15", "0xF, 15", "-0xE, -14", "010, 8", "-010, -8" })
-		void shouldParseIntegers(String input, int expected) {
-			assertExpression(input, String.format("%d", expected));
-		}
-
-		@ParameterizedTest
-		@CsvSource({ "1.1, 1.1", "3.14, 3.14", "6.022E23, 6.022E23", "6.022e+24.0, 6.022E24" })
-		void shouldParseDoubles(String input, String expected) {
-			assertExpression(input, expected);
-		}
-	}
-
-	@Nested
-	class Booleans {
-
-		@ParameterizedTest
-		@CsvSource({ "TRUE, true", "true, true", "True, true", "fAlse, false", "FALSE, false" })
-		void shouldParseBooleans(String input, String expected) {
-			assertExpression(input, expected);
-		}
-	}
-
 	@Test
 	void shouldParseCount() {
 		assertExpression("Count(*)", "count(*)");
-	}
-
-	@ParameterizedTest
-	@CsvSource({
-		"+1, +1",
-		"+-1, +-1",
-		"-1, -1",
-		"--1, --1",
-		"NOT true, NOT (true)",
-		"2+2, (2 + 2)",
-		"2-2, (2 - 2)",
-		"2*2, (2 * 2)",
-		"2/2, (2 / 2)",
-		"2%2, (2 % 2)",
-		"2^2, 2^2",
-		"n.f <> 1, n.f <> 1",
-		"n.f != 1, n.f <> 1",
-		"n.f = 1, n.f = 1",
-		"n.f <= 1, n.f <= 1",
-		"n.f >= 1, n.f >= 1",
-		"n.f < 1, n.f < 1",
-		"n.f > 1, n.f > 1",
-		"n.f =~ '.*', n.f =~ '.*'",
-		"n.f ends with \"blah\", n.f ENDS WITH 'blah'",
-		"n.f starts with 'blah', n.f STARTS WITH 'blah'",
-		"n.f contains 'blah', n.f CONTAINS 'blah'",
-		"n.f is NULL, n.f IS NULL"
-	})
-	void shouldParseOperatorsAndConditions(String input, String expected) {
-		assertExpression(input, expected);
 	}
 
 	@Test

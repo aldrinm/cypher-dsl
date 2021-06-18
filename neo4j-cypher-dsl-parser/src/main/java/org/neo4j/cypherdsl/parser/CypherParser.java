@@ -26,6 +26,7 @@ import org.neo4j.cypher.internal.parser.javacc.CharStream;
 import org.neo4j.cypher.internal.parser.javacc.Cypher;
 import org.neo4j.cypher.internal.parser.javacc.CypherCharStream;
 import org.neo4j.cypher.internal.parser.javacc.ParseException;
+import org.neo4j.cypherdsl.core.Clause;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
@@ -74,6 +75,13 @@ public final class CypherParser {
 		return handle(() -> (Expression) new Cypher(CypherDslASTFactory.INSTANCE,
 			CypherDslASTExceptionFactory.INSTANCE,
 			getCharStream(input)).Expression());
+	}
+
+	public static Clause parseClause(String input) {
+
+		return handle(() -> (Clause) new Cypher(CypherDslASTFactory.INSTANCE,
+			CypherDslASTExceptionFactory.INSTANCE,
+			getCharStream(input)).Clause());
 	}
 
 	private static <T> T handle(ThrowingParser<T> parser) {

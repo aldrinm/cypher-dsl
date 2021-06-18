@@ -1,0 +1,220 @@
+= TCK for Cypher-DSL Parser
+
+== Nodes
+
+Nodes can be parsed and used in constructions of queries for example.
+They are probably one of the most useful elements.
+
+Parse them via:
+
+[source,java,indent=0,tabsize=4]
+----
+import org.neo4j.cypherdsl.parser.CypherParser;
+
+public class Demo {
+	public static void main(String...a) {
+		var node = CypherParser.parseNode("(m:Movie)");
+	}
+}
+----
+
+[[nodes-input]]
+.Input
+[source,cypher]
+----
+()
+(:`A`)
+(:A)
+(:A:B)
+(:A:`B`:C)
+(m)
+(m:Movie)
+(m {a:'b'})
+(m {a:'b', c: 'd'})
+----
+
+They will look like this when rendered with the default renderer:
+
+[[nodes-output]]
+.Output
+[source,cypher]
+----
+()
+(:`A`)
+(:`A`)
+(:`A`:`B`)
+(:`A`:`B`:`C`)
+(m)
+(m:`Movie`)
+(m {a: 'b'})
+(m {a: 'b', c: 'd'})
+----
+
+== Clauses
+
+Clauses can be parsed like this:
+
+[source,java,indent=0,tabsize=4]
+----
+import java.util.List;
+
+import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.renderer.Renderer;
+
+public class Demo {
+	public static void main(String... a) {
+		var clause = CypherParser.parseClause("MATCH (tom:Person {name: \"Tom Hanks\"})-[:ACTED_IN]->(tomHanksMovies)");
+		var cypher = Renderer.getDefaultRenderer().render(Statement.of(List.of(clause)));
+		System.out.println(cypher);
+	}
+}
+----
+
+These are the supported clauses:
+
+[[clauses-input]]
+.Input
+[source,cypher]
+----
+MATCH (tom {name: "Tom Hanks"})
+MATCH (tom:Person {name: "Tom Hanks"})-[:ACTED_IN]->(tomHanksMovies)
+MATCH (n:Movie), (m:Person)
+DELETE n
+DETACH DELETE n
+RETURN n
+RETURN n ORDER by n.name
+RETURN n ORDER by n.name desc
+RETURN n ORDER by n.name SKIP 5
+RETURN n ORDER by n.name SKIP 5 LIMIT 10
+RETURN n ORDER by n.name, n.firstName SKIP 5 LIMIT 10
+RETURN n.name AS name, n.firstName as vorname ORDER by n.name, n.firstName SKIP 5 LIMIT 10
+----
+
+[[clauses-output]]
+.Rendered output
+[source,cypher]
+----
+MATCH (tom {name: 'Tom Hanks'})
+MATCH (tom:`Person` {name: 'Tom Hanks'})-[:`ACTED_IN`]->(tomHanksMovies)
+MATCH (n:`Movie`), (m:`Person`)
+DELETE n
+DETACH DELETE n
+RETURN n
+RETURN n ORDER BY n.name ASC
+RETURN n ORDER BY n.name DESC
+RETURN n ORDER BY n.name ASC SKIP 5
+RETURN n ORDER BY n.name ASC SKIP 5 LIMIT 10
+RETURN n ORDER BY n.name ASC, n.firstName ASC SKIP 5 LIMIT 10
+RETURN n.name AS name, n.firstName AS vorname ORDER BY n.name ASC, n.firstName ASC SKIP 5 LIMIT 10
+----
+
+== Expressions
+
+You can parse expressions, too.
+They can be used to enrich queries in many places, for example as conditions or properties.
+
+=== Usable datatypes
+
+[[expressions-input-datatypes]]
+.Input
+[source,cypher]
+----
+1
+-1
+0XF
+0xF
+-0xE
+010
+-010
+1.1
+3.14
+6.022E23
+6.022e+24.0
+TRUE
+true
+True
+fAlse
+FALSE
+----
+
+[[expressions-output-datatypes]]
+.Output
+[source,cypher]
+----
+1
+-1
+15
+15
+-14
+8
+-8
+1.1
+3.14
+6.022E23
+6.022E24
+true
+true
+true
+false
+false
+----
+
+=== Operators and conditions
+
+[[expressions-input-0]]
+.Input
+[source,cypher]
+----
++1
++-1
+-1
+--1
+NOT true
+2+2
+2-2
+2*2
+2/2
+2%2
+2^2
+n.f <> 1
+n.f != 1
+n.f = 1
+n.f <= 1
+n.f >= 1
+n.f < 1
+n.f > 1
+n.f =~ '.*'
+n.f ends with "foo"
+n.f starts with 'foo'
+n.f contains 'foo'
+n.f is NULL
+----
+
+[[expressions-output-0]]
+.Rendered output
+[source,cypher]
+----
++1
++-1
+-1
+--1
+NOT (true)
+(2 + 2)
+(2 - 2)
+(2 * 2)
+(2 / 2)
+(2 % 2)
+2^2
+n.f <> 1
+n.f <> 1
+n.f = 1
+n.f <= 1
+n.f >= 1
+n.f < 1
+n.f > 1
+n.f =~ '.*'
+n.f ENDS WITH 'foo'
+n.f STARTS WITH 'foo'
+n.f CONTAINS 'foo'
+n.f IS NULL
+----
