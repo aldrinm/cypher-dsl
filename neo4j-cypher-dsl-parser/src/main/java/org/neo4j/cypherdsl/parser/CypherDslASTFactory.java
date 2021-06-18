@@ -148,8 +148,9 @@ enum CypherDslASTFactory
 		throw new UnsupportedOperationException();
 	}
 
-	@Override public Clause createClause(InputPosition p, List<PatternElement> patternElements) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Clause createClause(InputPosition p, List<PatternElement> patternElements) {
+		return Clauses.create(patternElements);
 	}
 
 	@Override public Clause setClause(InputPosition p, List<Operation> nulls) {
@@ -204,7 +205,12 @@ enum CypherDslASTFactory
 	@Override
 	public Clause mergeClause(InputPosition p, PatternElement patternElement, List<Clause> setClauses,
 		List<MergeActionType> actionTypes) {
-		throw new UnsupportedOperationException();
+
+		if (setClauses != null && setClauses.size() > 0 || actionTypes != null && actionTypes.size() > 0) {
+			throw new UnsupportedOperationException();
+		}
+
+		return Clauses.merge(List.of(patternElement));
 	}
 
 	@Override

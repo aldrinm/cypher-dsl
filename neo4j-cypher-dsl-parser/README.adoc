@@ -88,6 +88,14 @@ RETURN n ORDER by n.name SKIP 5
 RETURN n ORDER by n.name SKIP 5 LIMIT 10
 RETURN n ORDER by n.name, n.firstName SKIP 5 LIMIT 10
 RETURN n.name AS name, n.firstName as vorname ORDER by n.name, n.firstName SKIP 5 LIMIT 10
+RETURN distinct n
+RETURN collect(n)
+CREATE (m:Movie)
+CREATE (m:Movie {title: "A title"})
+CREATE (a:Person) -[:ACTED_IN] -> (m:Movie {title: "A title"})
+MERGE (m:Movie)
+MERGE (m:Movie {title: "A title"})
+MERGE (a:Person) -[:ACTED_IN] -> (m:Movie {title: "A title"})
 ----
 
 [[clauses-output]]
@@ -106,6 +114,14 @@ RETURN n ORDER BY n.name ASC SKIP 5
 RETURN n ORDER BY n.name ASC SKIP 5 LIMIT 10
 RETURN n ORDER BY n.name ASC, n.firstName ASC SKIP 5 LIMIT 10
 RETURN n.name AS name, n.firstName AS vorname ORDER BY n.name ASC, n.firstName ASC SKIP 5 LIMIT 10
+RETURN DISTINCT n
+RETURN collect(n)
+CREATE (m:`Movie`)
+CREATE (m:`Movie` {title: 'A title'})
+CREATE (a:`Person`)-[:`ACTED_IN`]->(m:`Movie` {title: 'A title'})
+MERGE (m:`Movie`)
+MERGE (m:`Movie` {title: 'A title'})
+MERGE (a:`Person`)-[:`ACTED_IN`]->(m:`Movie` {title: 'A title'})
 ----
 
 == Expressions

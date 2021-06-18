@@ -90,6 +90,30 @@ public final class Clauses {
 	}
 
 	/**
+	 * Builds a {@code CREATE} clause.
+	 *
+	 * @param patternElements The pattern elements to create
+	 * @return an immutable create clause
+	 */
+	@NotNull
+	public static Clause create(List<PatternElement> patternElements) {
+
+		return new Create(new Pattern(patternElements));
+	}
+
+	/**
+	 * Builds a {@code MERGE} clause.
+	 *
+	 * @param patternElements The pattern elements to merge
+	 * @return an immutable merge clause
+	 */
+	@NotNull
+	public static Clause merge(List<PatternElement> patternElements) {
+
+		return new Merge(new Pattern(patternElements));
+	}
+
+	/**
 	 * Not to be instantiated.
 	 */
 	private Clauses() {
