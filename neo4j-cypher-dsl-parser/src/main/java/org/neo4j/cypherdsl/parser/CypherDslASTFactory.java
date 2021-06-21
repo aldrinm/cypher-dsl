@@ -32,6 +32,7 @@ import org.apiguardian.api.API;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory;
 import org.neo4j.cypher.internal.ast.factory.ASTFactory.NULL;
 import org.neo4j.cypher.internal.ast.factory.ParameterType;
+import org.neo4j.cypherdsl.core.Case;
 import org.neo4j.cypherdsl.core.Clause;
 import org.neo4j.cypherdsl.core.Clauses;
 import org.neo4j.cypherdsl.core.Cypher;
@@ -41,8 +42,10 @@ import org.neo4j.cypherdsl.core.ExposesRelationships;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Functions;
+import org.neo4j.cypherdsl.core.KeyValueMapEntry;
 import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.MapExpression;
+import org.neo4j.cypherdsl.core.MapProjection;
 import org.neo4j.cypherdsl.core.Node;
 import org.neo4j.cypherdsl.core.Operation;
 import org.neo4j.cypherdsl.core.Operations;
@@ -53,6 +56,7 @@ import org.neo4j.cypherdsl.core.Property;
 import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipChain;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
+import org.neo4j.cypherdsl.core.Return;
 import org.neo4j.cypherdsl.core.SortItem;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.SymbolicName;
@@ -68,13 +72,13 @@ import org.neo4j.cypherdsl.core.utils.Assertions;
 @API(status = INTERNAL, since = "TBA")
 enum CypherDslASTFactory
 	implements
-	ASTFactory<Statement, Statement, Clause, Clause, Expression, SortItem, PatternElement, Node, PathDetails, PathLength, Clause, Operation, NULL, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, NULL, Clause, Statement, Clause, NULL, NULL, InputPosition> {
+	ASTFactory<Statement, Statement, Clause, Return, Expression, SortItem, PatternElement, Node, PathDetails, PathLength, Clause, Expression, Expression, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, Expression, Clause, Statement, Clause, NULL, NULL, InputPosition> {
 
 	INSTANCE;
 
 	@Override
-	public Statement newSingleQuery(List<Clause> objects) {
-		throw new UnsupportedOperationException();
+	public Statement newSingleQuery(List<Clause> clauses) {
+		return Statement.of(clauses);
 	}
 
 	@Override
@@ -93,11 +97,11 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Clause newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<Expression> returnItems,
+	public Return newReturnClause(InputPosition p, boolean distinct, boolean returnAll, List<Expression> returnItems,
 		List<SortItem> sortItems,
 		Expression skip, Expression limit) {
 
-		return Clauses.returning(distinct, returnItems, sortItems, skip, limit);
+		return (Return) Clauses.returning(distinct, returnItems, sortItems, skip, limit);
 	}
 
 	@Override
@@ -121,8 +125,8 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Clause withClause(InputPosition p, Clause aNull, Expression where) {
-		throw new UnsupportedOperationException();
+	public Clause withClause(InputPosition p, Return returnClause, Expression where) {
+		return Clauses.with(returnClause, where);
 	}
 
 	@Override
@@ -153,18 +157,19 @@ enum CypherDslASTFactory
 		return Clauses.create(patternElements);
 	}
 
-	@Override public Clause setClause(InputPosition p, List<Operation> nulls) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Clause setClause(InputPosition p, List<Expression> setItems) {
+		return Clauses.set(setItems);
 	}
 
 	@Override
 	public Operation setProperty(Property property, Expression value) {
-		throw new UnsupportedOperationException();
+		return property.to(value);
 	}
 
 	@Override
 	public Operation setVariable(SymbolicName symbolicName, Expression value) {
-		throw new UnsupportedOperationException();
+		return Operations.set(symbolicName, value);
 	}
 
 	@Override
@@ -178,18 +183,18 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Clause removeClause(InputPosition p, List<NULL> nulls) {
-		throw new UnsupportedOperationException();
+	public Clause removeClause(InputPosition p, List<Expression> removeItems) {
+		return Clauses.remove(removeItems);
 	}
 
 	@Override
-	public NULL removeProperty(Property property) {
-		throw new UnsupportedOperationException();
+	public Expression removeProperty(Property property) {
+		return property;
 	}
 
 	@Override
-	public NULL removeLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> labels) {
-		throw new UnsupportedOperationException();
+	public Expression removeLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> labels) {
+		return Operations.remove(Cypher.anyNode(symbolicName), labels.stream().map(l -> l.string).toArray(String[]::new));
 	}
 
 	@Override
@@ -256,12 +261,12 @@ enum CypherDslASTFactory
 		}
 
 		if (nodes.isEmpty() || relationships.isEmpty()) {
-			throw new IllegalStateException(
+			throw new IllegalArgumentException(
 				"Cannot create a PatternElement from an empty list of nodes or path details.");
 		}
 
 		if (nodes.size() != relationships.size() + 1) {
-			throw new IllegalStateException(
+			throw new IllegalArgumentException(
 				"Something weird has happened. Got " + nodes.size() + " nodes and " + relationships.size()
 				+ " path details.");
 		}
@@ -282,7 +287,7 @@ enum CypherDslASTFactory
 					relationshipPattern = relationshipPattern.relationshipBetween(nodes.get(i), pathDetails.getTypes());
 					break;
 				default:
-					throw new IllegalStateException("Unknown direction type: " + pathDetails.getDirection());
+					throw new IllegalArgumentException("Unknown direction type: " + pathDetails.getDirection());
 			}
 
 			if (pathDetails.getName() != null) {
@@ -429,7 +434,7 @@ enum CypherDslASTFactory
 
 	@Override
 	public Statement showRoles(InputPosition p, boolean withUsers, boolean showAll, Clause yieldExpr,
-		Clause returnWithoutGraph, Expression where) {
+		Return returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -484,12 +489,12 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Statement showUsers(InputPosition p, Clause yieldExpr, Clause returnWithoutGraph, Expression where) {
+	public Statement showUsers(InputPosition p, Clause yieldExpr, Return returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public Statement showCurrentUser(InputPosition p, Clause yieldExpr, Clause returnWithoutGraph, Expression where) {
+	public Statement showCurrentUser(InputPosition p, Clause yieldExpr, Return returnWithoutGraph, Expression where) {
 		throw new UnsupportedOperationException();
 	}
 
@@ -506,7 +511,7 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Statement showDatabase(InputPosition p, NULL scope, Clause yieldExpr, Clause returnWithoutGraph,
+	public Statement showDatabase(InputPosition p, NULL scope, Clause yieldExpr, Return returnWithoutGraph,
 		Expression where) {
 		throw new UnsupportedOperationException();
 	}
@@ -854,34 +859,53 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Expression mapProjection(InputPosition p, SymbolicName v, List<NULL> nulls) {
+	public Expression mapProjection(InputPosition p, SymbolicName v, List<Expression> items) {
+
+		return MapProjection.create(v, items.toArray(new Object[0]));
+	}
+
+	@Override
+	public Expression mapProjectionLiteralEntry(StringPos<InputPosition> property, Expression value) {
+
+		return KeyValueMapEntry.create(property.string, value);
+	}
+
+	@Override
+	public Expression mapProjectionProperty(StringPos<InputPosition> property) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL mapProjectionLiteralEntry(StringPos<InputPosition> property, Expression value) {
+	public Expression mapProjectionVariable(SymbolicName v) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
-	public NULL mapProjectionProperty(StringPos<InputPosition> property) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public NULL mapProjectionVariable(SymbolicName v) {
-		throw new UnsupportedOperationException();
-	}
-
-	@Override
-	public NULL mapProjectionAll(InputPosition p) {
+	public Expression mapProjectionAll(InputPosition p) {
 		throw new UnsupportedOperationException();
 	}
 
 	@Override
 	public Expression caseExpression(InputPosition p, Expression e, List<Expression> whens, List<Expression> thens,
 		Expression elze) {
-		throw new UnsupportedOperationException();
+
+		if (whens != null && thens != null && whens.size() != thens.size()) {
+			throw new IllegalArgumentException("Cannot combine lists of whens with a different sized list of thens.");
+		}
+
+		var aCase = Cypher.caseExpression(e);
+		if (whens != null && thens != null) {
+			var iteratorWhens = whens.iterator();
+			var iteratorThens = thens.iterator();
+			while (iteratorWhens.hasNext() && iteratorThens.hasNext()) {
+				aCase = aCase.when(iteratorWhens.next()).then(iteratorThens.next());
+			}
+			if (elze != null) {
+				return ((Case.CaseEnding) aCase).elseDefault(elze);
+			}
+			return aCase;
+		}
+		return aCase;
 	}
 
 	@Override

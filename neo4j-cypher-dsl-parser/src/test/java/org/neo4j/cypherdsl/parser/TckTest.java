@@ -52,7 +52,7 @@ import org.neo4j.cypherdsl.core.renderer.Renderer;
  * @author Michael J. Simons
  */
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class TckTest {
+class TckTest {
 
 	private final Map<String, TestData> testData = new HashMap<>();
 
@@ -107,6 +107,18 @@ public class TckTest {
 
 		var cypher = renderer.render(Statement.of(List.of(CypherParser.parseClause(input))));
 		Assertions.assertThat(cypher).isEqualTo(expected);
+	}
+
+	Stream<Arguments> statements() {
+		return testData.get("statements").asArguments();
+	}
+
+	@MethodSource("statements")
+	@ParameterizedTest
+	void statementsShouldWork(String input, String expected) {
+
+		var cypher = renderer.render(CypherParser.parseStatement(input));
+		assertThat(cypher).isEqualTo(expected);
 	}
 
 	private static class TestDataExtractor extends Treeprocessor {

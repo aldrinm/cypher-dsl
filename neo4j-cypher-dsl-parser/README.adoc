@@ -96,6 +96,9 @@ CREATE (a:Person) -[:ACTED_IN] -> (m:Movie {title: "A title"})
 MERGE (m:Movie)
 MERGE (m:Movie {title: "A title"})
 MERGE (a:Person) -[:ACTED_IN] -> (m:Movie {title: "A title"})
+WITH a
+WITH a WHERE a.name = 'Michael'
+WITH a ORDER by n.name, n.firstName desc SKIP 5 LIMIT 10 WHERE a.name = 'Michael'
 ----
 
 [[clauses-output]]
@@ -122,6 +125,52 @@ CREATE (a:`Person`)-[:`ACTED_IN`]->(m:`Movie` {title: 'A title'})
 MERGE (m:`Movie`)
 MERGE (m:`Movie` {title: 'A title'})
 MERGE (a:`Person`)-[:`ACTED_IN`]->(m:`Movie` {title: 'A title'})
+WITH a
+WITH a WHERE a.name = 'Michael'
+WITH a ORDER BY n.name ASC, n.firstName DESC SKIP 5 LIMIT 10 WHERE a.name = 'Michael'
+----
+
+== Whole queries
+
+Of course, you can parse a query into a Cypher-DSL statement.
+Such a statement could be combined with another statement into `UNION` query or be used as a subquery.
+
+[[statements-input]]
+.Input
+[source,cypher,separated=true]
+----
+MATCH (a {name: 'Andy'})
+REMOVE a.age
+RETURN a.name, a.age;
+MATCH (n {name: 'Peter'})
+REMOVE n:German
+RETURN n.name, labels(n);
+MATCH (n {name: 'Peter'})
+REMOVE n:German:Swedish
+RETURN n.name, labels(n);
+MATCH (n {name: 'Andy'})
+SET n.surname = 'Taylor'
+RETURN n.name, n.surname;
+MATCH (n {name: 'Andy'})
+SET (CASE WHEN n.age = 36 THEN n END).worksIn = 'Malmo'
+RETURN n.name, n.worksIn;
+MATCH
+  (at {name: 'Andy'}),
+  (pn {name: 'Peter'})
+SET at = pn
+RETURN at.name, at.age, at.hungry, pn.name, pn.age;
+----
+
+[[statements-output]]
+.Output
+[source,cypher]
+----
+MATCH (a {name: 'Andy'}) REMOVE a.age RETURN a.name, a.age
+MATCH (n {name: 'Peter'}) REMOVE n:`German` RETURN n.name, labels(n)
+MATCH (n {name: 'Peter'}) REMOVE n:`German`:`Swedish` RETURN n.name, labels(n)
+MATCH (n {name: 'Andy'}) SET n.surname = 'Taylor' RETURN n.name, n.surname
+MATCH (n {name: 'Andy'}) SET (CASE WHEN n.age = 36 THEN n END).worksIn = 'Malmo' RETURN n.name, n.worksIn
+MATCH (at {name: 'Andy'}), (pn {name: 'Peter'}) SET at = pn RETURN at.name, at.age, at.hungry, pn.name, pn.age
 ----
 
 == Expressions

@@ -114,6 +114,41 @@ public final class Clauses {
 	}
 
 	/**
+	 * Retrofits an existing {@link Return return clause} into an equivalent {@link With with clause}, optionally adding a
+	 * {@link Where where}.
+	 *
+	 * @param returnClause  The return clause that defines the fields, order and limit of what the with clause should return
+	 * @param optionalWhere An optional expression to define a where clause.
+	 * @return an immutable with clause
+	 */
+	public static Clause with(Return returnClause, @Nullable Expression optionalWhere) {
+
+		return new With(returnClause, optionalWhere == null ? null : new Where(optionalWhere.asCondition()));
+	}
+
+	/**
+	 * Creates a {@link Remove remove clause}, removing labels or properties.
+	 *
+	 * @param expressions Expressions pointing to a list of properties or labels that shall be removed
+	 * @return an immutable remove clause
+	 */
+	public static Remove remove(List<Expression> expressions) {
+
+		return new Remove(new ExpressionList(expressions));
+	}
+
+	/**
+	 * Creates a {@link Set remove clause}, setting labels or properties.
+	 *
+	 * @param expressions Expressions pointing to a list of properties or labels that shall be set
+	 * @return an immutable set clause
+	 */
+	public static Set set(List<Expression> expressions) {
+
+		return new Set(new ExpressionList(expressions));
+	}
+
+	/**
 	 * Not to be instantiated.
 	 */
 	private Clauses() {
