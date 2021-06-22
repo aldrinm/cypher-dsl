@@ -97,6 +97,8 @@ public final class CypherParser {
 			return parser.parse();
 		} catch (ParseException e) {
 			throw new CyperDslParseException(e);
+		} catch (IllegalArgumentException e) {
+			throw e;
 		} catch (UnsupportedOperationException e) {
 			throw new RuntimeException(
 				"You used one Cypher construct not yet supported by the Cypher-DSL.\n" +

@@ -132,7 +132,7 @@ public final class Clauses {
 	 * @param expressions Expressions pointing to a list of properties or labels that shall be removed
 	 * @return an immutable remove clause
 	 */
-	public static Remove remove(List<Expression> expressions) {
+	public static Clause remove(List<Expression> expressions) {
 
 		return new Remove(new ExpressionList(expressions));
 	}
@@ -143,9 +143,21 @@ public final class Clauses {
 	 * @param expressions Expressions pointing to a list of properties or labels that shall be set
 	 * @return an immutable set clause
 	 */
-	public static Set set(List<Expression> expressions) {
+	public static Clause set(List<Expression> expressions) {
 
 		return new Set(new ExpressionList(expressions));
+	}
+
+	/**
+	 * Creates an {@link Unwind unwind clause}.
+	 *
+	 * @param expression The expression to unwind
+	 * @param name       The name on which to unwind
+	 * @return an immutable unwind clause
+	 */
+	public static Clause unwind(Expression expression, SymbolicName name) {
+
+		return new Unwind(expression, name.getValue());
 	}
 
 	/**

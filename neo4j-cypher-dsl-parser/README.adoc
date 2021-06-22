@@ -139,15 +139,18 @@ Such a statement could be combined with another statement into `UNION` query or 
 .Input
 [source,cypher,separated=true]
 ----
-MATCH (a {name: 'Andy'})
-REMOVE a.age
-RETURN a.name, a.age;
-MATCH (n {name: 'Peter'})
-REMOVE n:German
-RETURN n.name, labels(n);
-MATCH (n {name: 'Peter'})
-REMOVE n:German:Swedish
-RETURN n.name, labels(n);
+MATCH (n)
+RETURN n;
+MATCH (movie:Movie)
+RETURN movie.title;
+MATCH (director {name: 'Oliver Stone'})--(movie)
+RETURN movie.title;
+MATCH (wallstreet {title: 'Wall Street'})<-[:ACTED_IN|:DIRECTED]-(person)
+RETURN person.name;
+MATCH
+  (charlie:Person {name: 'Charlie Sheen'}),
+  (rob:Person {name: 'Rob Reiner'})
+CREATE (rob)-[:`TYPE INCLUDING A SPACE`]->(charlie);
 MATCH (n {name: 'Andy'})
 SET n.surname = 'Taylor'
 RETURN n.name, n.surname;
@@ -159,18 +162,115 @@ MATCH
   (pn {name: 'Peter'})
 SET at = pn
 RETURN at.name, at.age, at.hungry, pn.name, pn.age;
+MATCH (n)
+RETURN
+CASE
+  WHEN n.eyes = 'blue' THEN 1
+  WHEN n.age < 40      THEN 2
+  ELSE 3
+END AS result;
+MATCH (actor:Person {name: 'Charlie Sheen'})-[:ACTED_IN]->(movie:Movie)
+RETURN actor{.name, .realName, movies: collect(movie{.title, .year})};
+MATCH (actor:Person)-[:ACTED_IN]->(movie:Movie)
+WITH actor, count(movie) AS nbrOfMovies
+RETURN actor{.name, nbrOfMovies};
+MATCH (actor:Person {name: 'Charlie Sheen'})
+RETURN actor{.*, .age};
+MATCH (p {name: 'Peter'})
+SET p = {name: 'Peter Smith', position: 'Entrepreneur'}
+RETURN p.name, p.age, p.position;
+MATCH (p {name: 'Peter'})
+SET p += {age: 38, hungry: true, position: 'Entrepreneur'}
+RETURN p.name, p.age, p.hungry, p.position;
+MATCH (p {name: 'Peter'})
+SET p += {}
+RETURN p.name, p.age;
+MATCH (n {name: 'Andy'})
+SET n.position = 'Developer', n.surname = 'Taylor';
+MATCH (n {name: 'Andy'})
+SET n.surname = $surname
+RETURN n.name, n.surname;
+MATCH (n {name: 'Stefan'})
+SET n:German
+RETURN n.name, labels(n) AS labels;
+MATCH (n {name: 'George'})
+SET n:Swedish:Bossman
+RETURN n.name, labels(n) AS labels;
+MATCH (a {name: 'Andy'})
+REMOVE a.age
+RETURN a.name, a.age;
+MATCH (n {name: 'Peter'})
+REMOVE n:German
+RETURN n.name, labels(n);
+MATCH (n {name: 'Peter'})
+REMOVE n:German:Swedish
+RETURN n.name, labels(n);
+MATCH (n:Actor)
+RETURN n.name AS name
+UNION ALL
+MATCH (n:Movie)
+RETURN n.title AS name;
+MATCH (n:Actor)
+RETURN n.name AS name
+UNION
+MATCH (n:Movie)
+RETURN n.title AS name;
+UNWIND [1, 2, 3, null] AS x
+RETURN x, 'val' AS y;
+WITH [1, 1, 2, 2] AS coll
+UNWIND coll AS x
+WITH DISTINCT x
+RETURN collect(x) AS setOfVals;
+WITH
+  [1, 2] AS a,
+  [3, 4] AS b
+UNWIND (a + b) AS x
+RETURN x;
+WITH [[1, 2], [3, 4], 5] AS nested
+UNWIND nested AS x
+UNWIND x AS y
+RETURN y;
+UNWIND [] AS empty
+RETURN empty, 'literal_that_is_not_returned';
+MATCH p=(start)-[*]->(finish)
+WHERE start.name = 'A' AND finish.name = 'D'
+RETURN p;
 ----
 
 [[statements-output]]
 .Output
 [source,cypher]
 ----
-MATCH (a {name: 'Andy'}) REMOVE a.age RETURN a.name, a.age
-MATCH (n {name: 'Peter'}) REMOVE n:`German` RETURN n.name, labels(n)
-MATCH (n {name: 'Peter'}) REMOVE n:`German`:`Swedish` RETURN n.name, labels(n)
+MATCH (n) RETURN n
+MATCH (movie:`Movie`) RETURN movie.title
+MATCH (director {name: 'Oliver Stone'})--(movie) RETURN movie.title
+MATCH (wallstreet {title: 'Wall Street'})<-[:`ACTED_IN`|`DIRECTED`]-(person) RETURN person.name
+MATCH (charlie:`Person` {name: 'Charlie Sheen'}), (rob:`Person` {name: 'Rob Reiner'}) CREATE (rob)-[:`TYPE INCLUDING A SPACE`]->(charlie)
 MATCH (n {name: 'Andy'}) SET n.surname = 'Taylor' RETURN n.name, n.surname
 MATCH (n {name: 'Andy'}) SET (CASE WHEN n.age = 36 THEN n END).worksIn = 'Malmo' RETURN n.name, n.worksIn
 MATCH (at {name: 'Andy'}), (pn {name: 'Peter'}) SET at = pn RETURN at.name, at.age, at.hungry, pn.name, pn.age
+MATCH (n) RETURN CASE WHEN n.eyes = 'blue' THEN 1 WHEN n.age < 40 THEN 2 ELSE 3 END AS result
+MATCH (actor:`Person` {name: 'Charlie Sheen'})-[:`ACTED_IN`]->(movie:`Movie`) RETURN actor{.name, .realName, movies: collect(movie{.title, .year})}
+MATCH (actor:`Person`)-[:`ACTED_IN`]->(movie:`Movie`) WITH actor, count(movie) AS nbrOfMovies RETURN actor{.name, nbrOfMovies}
+MATCH (actor:`Person` {name: 'Charlie Sheen'}) RETURN actor{.*, .age}
+MATCH (p {name: 'Peter'}) SET p = {name: 'Peter Smith', position: 'Entrepreneur'} RETURN p.name, p.age, p.position
+MATCH (p {name: 'Peter'}) SET p += {age: 38, hungry: true, position: 'Entrepreneur'} RETURN p.name, p.age, p.hungry, p.position
+MATCH (p {name: 'Peter'}) SET p += {} RETURN p.name, p.age
+MATCH (n {name: 'Andy'}) SET n.position = 'Developer', n.surname = 'Taylor'
+MATCH (n {name: 'Andy'}) SET n.surname = $surname RETURN n.name, n.surname
+MATCH (n {name: 'Stefan'}) SET n:`German` RETURN n.name, labels(n) AS labels
+MATCH (n {name: 'George'}) SET n:`Swedish`:`Bossman` RETURN n.name, labels(n) AS labels
+MATCH (a {name: 'Andy'}) REMOVE a.age RETURN a.name, a.age
+MATCH (n {name: 'Peter'}) REMOVE n:`German` RETURN n.name, labels(n)
+MATCH (n {name: 'Peter'}) REMOVE n:`German`:`Swedish` RETURN n.name, labels(n)
+MATCH (n:`Actor`) RETURN n.name AS name UNION ALL MATCH (n:`Movie`) RETURN n.title AS name
+MATCH (n:`Actor`) RETURN n.name AS name UNION MATCH (n:`Movie`) RETURN n.title AS name
+UNWIND [1, 2, 3, NULL] AS x RETURN x, 'val' AS y
+WITH [1, 1, 2, 2] AS coll UNWIND coll AS x WITH DISTINCT x RETURN collect(x) AS setOfVals
+WITH [1, 2] AS a, [3, 4] AS b UNWIND (a + b) AS x RETURN x
+WITH [[1, 2], [3, 4], 5] AS nested UNWIND nested AS x UNWIND x AS y RETURN y
+UNWIND [] AS empty RETURN empty, 'literal_that_is_not_returned'
+MATCH p = (start)-[*]->(finish) WHERE (start.name = 'A' AND finish.name = 'D') RETURN p
 ----
 
 == Expressions
@@ -253,6 +353,7 @@ n.f ends with "foo"
 n.f starts with 'foo'
 n.f contains 'foo'
 n.f is NULL
+actor{.name, .realName, movies: collect(movie{.title, .year})}
 ----
 
 [[expressions-output-0]]
@@ -282,4 +383,5 @@ n.f ENDS WITH 'foo'
 n.f STARTS WITH 'foo'
 n.f CONTAINS 'foo'
 n.f IS NULL
+actor{.name, .realName, movies: collect(movie{.title, .year})}
 ----

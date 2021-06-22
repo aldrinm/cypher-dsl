@@ -22,9 +22,11 @@ package org.neo4j.cypherdsl.parser;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -38,10 +40,11 @@ import org.asciidoctor.ast.Document;
 import org.asciidoctor.extension.Treeprocessor;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DynamicContainer;
+import org.junit.jupiter.api.DynamicNode;
+import org.junit.jupiter.api.DynamicTest;
+import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.Arguments;
-import org.junit.jupiter.params.provider.MethodSource;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Statement;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
@@ -71,12 +74,33 @@ class TckTest {
 		testData.putAll(collector.content);
 	}
 
-	Stream<Arguments> nodes() {
-		return testData.get("nodes").asArguments();
+	@TestFactory
+	Stream<DynamicNode> tck() {
+
+		return testData.entrySet().stream().map(entry -> {
+			try {
+				Stream<DynamicNode> entries;
+				var method = this.getClass()
+					.getDeclaredMethod(entry.getKey() + "ShouldWork", String.class, String.class);
+				entries = entry.getValue()
+					.asArguments()
+					.map(arguments -> DynamicTest.dynamicTest(arguments.getKey(),
+						() -> {
+							try {
+								method.invoke(this, arguments.getKey(), arguments.getValue());
+							} catch (InvocationTargetException e) {
+								throw e.getCause();
+							}
+						}
+					));
+
+				return DynamicContainer.dynamicContainer(entry.getKey() + "ShouldWork", entries);
+			} catch (NoSuchMethodException e) {
+				throw new RuntimeException(e);
+			}
+		});
 	}
 
-	@MethodSource("nodes")
-	@ParameterizedTest
 	void nodesShouldWork(String input, String expected) {
 
 		var node = CypherParser.parseNode(input);
@@ -84,12 +108,6 @@ class TckTest {
 			.isEqualTo(String.format("MATCH %s RETURN *", expected));
 	}
 
-	Stream<Arguments> expressions() {
-		return testData.get("expressions").asArguments();
-	}
-
-	@MethodSource("expressions")
-	@ParameterizedTest
 	void expressionsShouldWork(String input, String expected) {
 
 		var e = CypherParser.parseExpression(input);
@@ -97,24 +115,12 @@ class TckTest {
 			.isEqualTo(String.format("RETURN %s", expected));
 	}
 
-	Stream<Arguments> clauses() {
-		return testData.get("clauses").asArguments();
-	}
-
-	@MethodSource("clauses")
-	@ParameterizedTest
-	void supportedClausesShouldWork(String input, String expected) {
+	void clausesShouldWork(String input, String expected) {
 
 		var cypher = renderer.render(Statement.of(List.of(CypherParser.parseClause(input))));
 		Assertions.assertThat(cypher).isEqualTo(expected);
 	}
 
-	Stream<Arguments> statements() {
-		return testData.get("statements").asArguments();
-	}
-
-	@MethodSource("statements")
-	@ParameterizedTest
 	void statementsShouldWork(String input, String expected) {
 
 		var cypher = renderer.render(CypherParser.parseStatement(input));
@@ -163,10 +169,10 @@ class TckTest {
 		private final List<String> input = new ArrayList<>();
 		private final List<String> expected = new ArrayList<>();
 
-		Stream<Arguments> asArguments() {
-			var result = Stream.<Arguments>builder();
+		Stream<Map.Entry<String, String>> asArguments() {
+			var result = Stream.<Map.Entry<String, String>>builder();
 			for (int i = 0; i < input.size(); i++) {
-				result.add(Arguments.of(input.get(i).trim(), expected.get(i).trim()));
+				result.add(new AbstractMap.SimpleImmutableEntry<>(input.get(i).trim(), expected.get(i).trim()));
 			}
 			return result.build();
 		}

@@ -53,6 +53,7 @@ import org.neo4j.cypherdsl.core.Parameter;
 import org.neo4j.cypherdsl.core.PatternElement;
 import org.neo4j.cypherdsl.core.Predicates;
 import org.neo4j.cypherdsl.core.Property;
+import org.neo4j.cypherdsl.core.PropertyLookup;
 import org.neo4j.cypherdsl.core.Relationship;
 import org.neo4j.cypherdsl.core.RelationshipChain;
 import org.neo4j.cypherdsl.core.RelationshipPattern;
@@ -83,7 +84,11 @@ enum CypherDslASTFactory
 
 	@Override
 	public Statement newUnion(InputPosition p, Statement lhs, Statement rhs, boolean all) {
-		throw new UnsupportedOperationException();
+		if (all) {
+			return Cypher.unionAll(lhs, rhs);
+		} else {
+			return Cypher.union(lhs, rhs);
+		}
 	}
 
 	@Override
@@ -174,12 +179,12 @@ enum CypherDslASTFactory
 
 	@Override
 	public Operation addAndSetVariable(SymbolicName symbolicName, Expression value) {
-		throw new UnsupportedOperationException();
+		return Operations.mutate(symbolicName, value);
 	}
 
 	@Override
 	public Operation setLabels(SymbolicName symbolicName, List<StringPos<InputPosition>> value) {
-		throw new UnsupportedOperationException();
+		return Operations.set(Cypher.anyNode(symbolicName), value.stream().map(v -> v.string).toArray(String[]::new));
 	}
 
 	@Override
@@ -204,7 +209,7 @@ enum CypherDslASTFactory
 
 	@Override
 	public Clause unwindClause(InputPosition p, Expression e, SymbolicName v) {
-		throw new UnsupportedOperationException();
+		return Clauses.unwind(e, v);
 	}
 
 	@Override
@@ -230,7 +235,7 @@ enum CypherDslASTFactory
 
 	@Override
 	public PatternElement namedPattern(SymbolicName v, PatternElement patternElement) {
-		throw new UnsupportedOperationException();
+		return Cypher.path(v).definedBy((RelationshipPattern) patternElement);
 	}
 
 	@Override
@@ -860,29 +865,27 @@ enum CypherDslASTFactory
 
 	@Override
 	public Expression mapProjection(InputPosition p, SymbolicName v, List<Expression> items) {
-
 		return MapProjection.create(v, items.toArray(new Object[0]));
 	}
 
 	@Override
 	public Expression mapProjectionLiteralEntry(StringPos<InputPosition> property, Expression value) {
-
 		return KeyValueMapEntry.create(property.string, value);
 	}
 
 	@Override
 	public Expression mapProjectionProperty(StringPos<InputPosition> property) {
-		throw new UnsupportedOperationException();
+		return PropertyLookup.forName(property.string);
 	}
 
 	@Override
 	public Expression mapProjectionVariable(SymbolicName v) {
-		throw new UnsupportedOperationException();
+		return v;
 	}
 
 	@Override
 	public Expression mapProjectionAll(InputPosition p) {
-		throw new UnsupportedOperationException();
+		return Cypher.asterisk();
 	}
 
 	@Override
