@@ -361,6 +361,22 @@ LOAD CSV FROM 'file:///artists.csv' AS line RETURN linenumber() AS number, line
 LOAD CSV FROM 'file:///artists.csv' AS line RETURN DISTINCT file() AS path
 ----
 
+Some statements from the original test suite
+
+[[statements-input-originally-generated]]
+.Input
+[source,cypher]
+----
+MATCH (node:`Division`) WITH DISTINCT node WHERE NOT (node)-[:`IN`]->(:`Department`)-[:`INSIDE` {rel_property: true}]->(:`Department`)-[:`EMPLOYS`]->(:`Employee`) RETURN *
+----
+
+[[statements-output-originally-generated]]
+.Output
+[source,cypher]
+----
+MATCH (node:`Division`) WITH DISTINCT node WHERE NOT (node)-[:`IN`]->(:`Department`)-[:`INSIDE` {rel_property: true}]->(:`Department`)-[:`EMPLOYS`]->(:`Employee`) RETURN *
+----
+
 == Expressions
 
 You can parse expressions, too.
