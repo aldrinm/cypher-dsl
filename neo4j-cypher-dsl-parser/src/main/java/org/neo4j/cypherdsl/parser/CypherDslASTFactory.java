@@ -879,6 +879,10 @@ enum CypherDslASTFactory
 			return ((ExpressionAsPatternElementWrapper) patternElement).getExpression();
 		}
 
+		if (patternElement instanceof RelationshipPattern) {
+			return new PatternElementAsExpressionWrapper((RelationshipPattern) patternElement);
+		}
+
 		throw new UnsupportedOperationException();
 	}
 

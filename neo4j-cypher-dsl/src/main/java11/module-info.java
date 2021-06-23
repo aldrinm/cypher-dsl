@@ -32,4 +32,5 @@ module org.neo4j.cypherdsl.core {
 	exports org.neo4j.cypherdsl.core.renderer;
 
 	exports org.neo4j.cypherdsl.core.utils to org.neo4j.cypherdsl.codegen.core;
+	exports org.neo4j.cypherdsl.core.internal to org.neo4j.cypherdsl.parser;
 }

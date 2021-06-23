@@ -22,31 +22,34 @@ package org.neo4j.cypherdsl.parser;
 import static org.apiguardian.api.API.Status.INTERNAL;
 
 import org.apiguardian.api.API;
+import org.neo4j.cypherdsl.core.Condition;
 import org.neo4j.cypherdsl.core.Expression;
-import org.neo4j.cypherdsl.core.PatternElement;
+import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.ast.Visitor;
+import org.neo4j.cypherdsl.core.internal.RelationshipPatternCondition;
 
 /**
- * Necessary for {@code shortestPath} and friends.
+ * Necessary for using relationship pattern as expressions.
  *
  * @author Michael J. Simons
  * @since TBA
  */
 @API(status = INTERNAL, since = "TBA")
-final class ExpressionAsPatternElementWrapper implements PatternElement {
+final class PatternElementAsExpressionWrapper implements Expression {
 
-	private final Expression expression;
+	private final RelationshipPattern relationshipPattern;
 
-	ExpressionAsPatternElementWrapper(Expression expression) {
-		this.expression = expression;
-	}
-
-	public Expression getExpression() {
-		return expression;
+	PatternElementAsExpressionWrapper(RelationshipPattern relationshipPattern) {
+		this.relationshipPattern = relationshipPattern;
 	}
 
 	@Override
 	public void accept(Visitor visitor) {
-		this.expression.accept(visitor);
+		this.relationshipPattern.accept(visitor);
+	}
+
+	@Override
+	public Condition asCondition() {
+		return RelationshipPatternCondition.of(relationshipPattern);
 	}
 }
