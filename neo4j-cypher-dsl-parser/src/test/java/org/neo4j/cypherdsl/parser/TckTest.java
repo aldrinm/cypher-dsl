@@ -47,6 +47,7 @@ import org.junit.jupiter.api.TestFactory;
 import org.junit.jupiter.api.TestInstance;
 import org.neo4j.cypherdsl.core.Cypher;
 import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.renderer.Configuration;
 import org.neo4j.cypherdsl.core.renderer.Renderer;
 
 /**
@@ -58,8 +59,6 @@ import org.neo4j.cypherdsl.core.renderer.Renderer;
 class TckTest {
 
 	private final Map<String, TestData> testData = new HashMap<>();
-
-	private final Renderer renderer = Renderer.getDefaultRenderer();
 
 	@BeforeAll
 	void init() throws IOException, URISyntaxException {
@@ -80,48 +79,57 @@ class TckTest {
 		return testData.entrySet().stream().map(entry -> {
 			try {
 				Stream<DynamicNode> entries;
-				var method = this.getClass()
-					.getDeclaredMethod(entry.getKey() + "ShouldWork", String.class, String.class);
+
+				var type = entry.getKey().split("-")[0];
+				var method = this.getClass().getDeclaredMethod(type + "ShouldWork", Renderer.class, String.class, String.class);
+
+				var renderer = Renderer.getRenderer(
+					Configuration.newConfig().alwaysEscapeNames(entry.getValue().alwaysEscape).build());
+
 				entries = entry.getValue()
 					.asArguments()
 					.map(arguments -> DynamicTest.dynamicTest(arguments.getKey(),
 						() -> {
 							try {
-								method.invoke(this, arguments.getKey(), arguments.getValue());
+								method.invoke(this, renderer, arguments.getKey(), arguments.getValue());
 							} catch (InvocationTargetException e) {
 								throw e.getCause();
 							}
 						}
 					));
 
-				return DynamicContainer.dynamicContainer(entry.getKey() + "ShouldWork", entries);
+				var name = type;
+				if (!entry.getValue().alwaysEscape) {
+					name += " (Only escaping when necessary)";
+				}
+				return DynamicContainer.dynamicContainer(name, entries);
 			} catch (NoSuchMethodException e) {
 				throw new RuntimeException(e);
 			}
 		});
 	}
 
-	void nodesShouldWork(String input, String expected) {
+	void nodesShouldWork(Renderer renderer, String input, String expected) {
 
 		var node = CypherParser.parseNode(input);
 		assertThat(renderer.render(Cypher.match(node).returning(Cypher.asterisk()).build()))
 			.isEqualTo(String.format("MATCH %s RETURN *", expected));
 	}
 
-	void expressionsShouldWork(String input, String expected) {
+	void expressionsShouldWork(Renderer renderer, String input, String expected) {
 
 		var e = CypherParser.parseExpression(input);
-		assertThat(Cypher.returning(e).build().getCypher())
+		assertThat(renderer.render(Cypher.returning(e).build()))
 			.isEqualTo(String.format("RETURN %s", expected));
 	}
 
-	void clausesShouldWork(String input, String expected) {
+	void clausesShouldWork(Renderer renderer, String input, String expected) {
 
 		var cypher = renderer.render(Statement.of(List.of(CypherParser.parseClause(input))));
 		Assertions.assertThat(cypher).isEqualTo(expected);
 	}
 
-	void statementsShouldWork(String input, String expected) {
+	void statementsShouldWork(Renderer renderer, String input, String expected) {
 
 		var cypher = renderer.render(CypherParser.parseStatement(input));
 		assertThat(cypher).isEqualTo(expected);
@@ -145,7 +153,9 @@ class TckTest {
 				.forEach(block -> {
 					var id = block.getId().split("-");
 					var type = id[0];
-					var test = content.computeIfAbsent(type, key -> new TestData());
+					var alwaysEscape = !block.hasAttribute("alwaysEscape") || Boolean.parseBoolean((String) block.getAttribute("alwaysEscape"));
+					type = type + "-" + alwaysEscape;
+					var test = content.computeIfAbsent(type, key -> new TestData(alwaysEscape));
 					var separated = block.getAttribute("separated");
 					var lines = Boolean.parseBoolean((String) separated) ?
 						Arrays.asList(block.getSource().split(";")) :
@@ -166,8 +176,13 @@ class TckTest {
 
 	private static class TestData {
 
+		private final boolean alwaysEscape;
 		private final List<String> input = new ArrayList<>();
 		private final List<String> expected = new ArrayList<>();
+
+		public TestData(boolean alwaysEscape) {
+			this.alwaysEscape = alwaysEscape;
+		}
 
 		Stream<Map.Entry<String, String>> asArguments() {
 			var result = Stream.<Map.Entry<String, String>>builder();

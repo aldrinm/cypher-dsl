@@ -20,11 +20,13 @@ package org.neo4j.cypherdsl.core;
 
 import static org.apiguardian.api.API.Status.EXPERIMENTAL;
 
+import java.net.URI;
 import java.util.List;
 
 import org.apiguardian.api.API;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.neo4j.cypherdsl.core.internal.LoadCSV;
 
 /**
  * Builder / factory for various {@link Clause clauses}. It's mostly useful for building a Cypher-DSL AST
@@ -158,6 +160,13 @@ public final class Clauses {
 	public static Clause unwind(Expression expression, SymbolicName name) {
 
 		return new Unwind(expression, name.getValue());
+	}
+
+	public static Clause loadCSV(boolean withHeaders, StringLiteral uri, SymbolicName alias,
+		@Nullable String fieldTerminator) {
+
+		return new LoadCSV(URI.create(uri.getContent().toString()), withHeaders, alias.getValue())
+			.withFieldTerminator(fieldTerminator);
 	}
 
 	/**

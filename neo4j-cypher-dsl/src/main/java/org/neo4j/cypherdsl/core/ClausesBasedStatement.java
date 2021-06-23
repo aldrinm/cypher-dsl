@@ -26,7 +26,10 @@ import java.util.List;
 
 import org.apiguardian.api.API;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+import org.neo4j.cypherdsl.core.ast.Visitable;
 import org.neo4j.cypherdsl.core.ast.Visitor;
+import org.neo4j.cypherdsl.core.internal.UsingPeriodicCommit;
 
 /**
  * This variant of a {@link Statement} takes in a plain list of clauses without any further checks. During rendering they
@@ -39,9 +42,12 @@ import org.neo4j.cypherdsl.core.ast.Visitor;
 @API(status = INTERNAL, since = "TBA")
 class ClausesBasedStatement extends AbstractStatement {
 
+	private final UsingPeriodicCommit optionalPeriodicCommit;
+
 	private final List<Clause> clauses;
 
-	ClausesBasedStatement(@NotNull List<Clause> clauses) {
+	ClausesBasedStatement(@NotNull List<Clause> clauses, @Nullable UsingPeriodicCommit optionalPeriodicCommit) {
+		this.optionalPeriodicCommit = optionalPeriodicCommit;
 		this.clauses = Collections.unmodifiableList(new ArrayList<>(clauses));
 	}
 
@@ -49,6 +55,7 @@ class ClausesBasedStatement extends AbstractStatement {
 	public void accept(Visitor visitor) {
 
 		visitor.enter(this);
+		Visitable.visitIfNotNull(optionalPeriodicCommit, visitor);
 		clauses.forEach(c -> c.accept(visitor));
 		visitor.leave(this);
 	}

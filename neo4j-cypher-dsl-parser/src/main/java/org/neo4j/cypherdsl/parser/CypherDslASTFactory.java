@@ -23,6 +23,8 @@ import static org.apiguardian.api.API.Status.INTERNAL;
 
 import scala.util.Either;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -42,6 +44,7 @@ import org.neo4j.cypherdsl.core.ExposesRelationships;
 import org.neo4j.cypherdsl.core.Expression;
 import org.neo4j.cypherdsl.core.FunctionInvocation;
 import org.neo4j.cypherdsl.core.Functions;
+import org.neo4j.cypherdsl.core.Hint;
 import org.neo4j.cypherdsl.core.KeyValueMapEntry;
 import org.neo4j.cypherdsl.core.Literal;
 import org.neo4j.cypherdsl.core.MapExpression;
@@ -60,6 +63,7 @@ import org.neo4j.cypherdsl.core.RelationshipPattern;
 import org.neo4j.cypherdsl.core.Return;
 import org.neo4j.cypherdsl.core.SortItem;
 import org.neo4j.cypherdsl.core.Statement;
+import org.neo4j.cypherdsl.core.StringLiteral;
 import org.neo4j.cypherdsl.core.SymbolicName;
 import org.neo4j.cypherdsl.core.utils.Assertions;
 
@@ -73,7 +77,7 @@ import org.neo4j.cypherdsl.core.utils.Assertions;
 @API(status = INTERNAL, since = "TBA")
 enum CypherDslASTFactory
 	implements
-	ASTFactory<Statement, Statement, Clause, Return, Expression, SortItem, PatternElement, Node, PathDetails, PathLength, Clause, Expression, Expression, NULL, NULL, Expression, Parameter<?>, SymbolicName, Property, Expression, Clause, Statement, Clause, NULL, NULL, InputPosition> {
+	ASTFactory<Statement, Statement, Clause, Return, Expression, SortItem, PatternElement, Node, PathDetails, PathLength, Clause, Expression, Expression, NULL, Hint, Expression, Parameter<?>, SymbolicName, Property, Expression, Clause, Statement, Clause, NULL, NULL, InputPosition> {
 
 	INSTANCE;
 
@@ -93,7 +97,11 @@ enum CypherDslASTFactory
 
 	@Override
 	public Statement periodicCommitQuery(InputPosition p, String batchSize, Clause loadCsv, List<Clause> queryBody) {
-		throw new UnsupportedOperationException();
+
+		var allClauses = new ArrayList<Clause>();
+		allClauses.add(loadCsv);
+		allClauses.addAll(queryBody);
+		return Statement.usingPeriodic(batchSize == null || batchSize.isBlank() ? null : Integer.parseInt(batchSize), allClauses);
 	}
 
 	@Override
@@ -106,7 +114,15 @@ enum CypherDslASTFactory
 		List<SortItem> sortItems,
 		Expression skip, Expression limit) {
 
-		return (Return) Clauses.returning(distinct, returnItems, sortItems, skip, limit);
+		List<Expression> finalReturnItems = returnItems;
+		if (finalReturnItems.isEmpty()) {
+			if (!returnAll) {
+				throw new IllegalArgumentException("Cannot return nothing.");
+			}
+			finalReturnItems = Collections.singletonList(Cypher.asterisk());
+		}
+
+		return (Return) Clauses.returning(distinct, finalReturnItems, sortItems, skip, limit);
 	}
 
 	@Override
@@ -135,26 +151,32 @@ enum CypherDslASTFactory
 	}
 
 	@Override
-	public Clause matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<NULL> hints,
-		Expression where) {
-		if (hints != null && !hints.isEmpty()) {
-			throw new UnsupportedOperationException();
-		}
-		return Clauses.match(optional, patternElements, where, null);
+	public Clause matchClause(InputPosition p, boolean optional, List<PatternElement> patternElements, List<Hint> hints, Expression where) {
+		return Clauses.match(optional, patternElements, where, hints);
 	}
 
 	@Override
-	public NULL usingIndexHint(InputPosition p, SymbolicName v, String label, List<String> properties,
-		boolean seekOnly) {
-		throw new UnsupportedOperationException();
+	public Hint usingIndexHint(InputPosition p, SymbolicName v, String label, List<String> properties, boolean seekOnly) {
+
+		// We build nodes here. As of now, the node isn't used anyway, but only the label
+		// will be used down further the AST.
+		// It is easier than introduce a new common abstraction of label and relationship type (probably
+		// in line with the decision made for the parser)
+		var node = Cypher.node(label).named(v);
+		return Hint.useIndexFor(seekOnly, properties.stream().map(node::property).toArray(Property[]::new));
 	}
 
-	@Override public NULL usingJoin(InputPosition p, List<SymbolicName> joinVariables) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Hint usingJoin(InputPosition p, List<SymbolicName> joinVariables) {
+
+		return Hint.useJoinOn(joinVariables.toArray(SymbolicName[]::new));
 	}
 
-	@Override public NULL usingScan(InputPosition p, SymbolicName v, String label) {
-		throw new UnsupportedOperationException();
+	@Override
+	public Hint usingScan(InputPosition p, SymbolicName v, String label) {
+
+		// Same note applies as with usingIndexHint in regards of relationships
+		return Hint.useScanFor(Cypher.node(label).named(v));
 	}
 
 	@Override
@@ -366,7 +388,9 @@ enum CypherDslASTFactory
 	@Override
 	public Clause loadCsvClause(InputPosition p, boolean headers, Expression source, SymbolicName v,
 		String fieldTerminator) {
-		throw new UnsupportedOperationException();
+
+		Assertions.isInstanceOf(StringLiteral.class, source, "Only string literals are supported as source for the LOAD CSV clause.");
+		return Clauses.loadCSV(headers, (StringLiteral) source, v, fieldTerminator);
 	}
 
 	@Override

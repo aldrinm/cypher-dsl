@@ -30,8 +30,10 @@ import org.jetbrains.annotations.Contract;
 import org.jetbrains.annotations.NotNull;
 import org.neo4j.cypherdsl.core.StatementBuilder.OngoingStandaloneCallWithoutArguments;
 import org.neo4j.cypherdsl.core.ast.Visitable;
+import org.neo4j.cypherdsl.core.internal.LoadCSV;
 import org.neo4j.cypherdsl.core.internal.ProcedureName;
 import org.neo4j.cypherdsl.core.internal.StatementContext;
+import org.neo4j.cypherdsl.core.internal.UsingPeriodicCommit;
 import org.neo4j.cypherdsl.core.utils.Assertions;
 
 /**
@@ -68,7 +70,27 @@ public interface Statement extends Visitable {
 	static Statement of(@NotNull List<Clause> clauses) {
 
 		Assertions.notNull(clauses, "Clauses must not be null.");
-		return new ClausesBasedStatement(clauses);
+		return new ClausesBasedStatement(clauses, null);
+	}
+
+	/**
+	 * Creates a statement based on a list of {@link Clause clauses} and prepends it with {@literal USING PERIODIC COMMIT}.
+	 * It is your task to provide a sanity check of the clauses. The builder will use the clauses "as is",
+	 * neither change their order nor their type.
+	 * <p>
+	 * The {@literal USING PERIODIC HINT} is only valid right before the {@literal LOAD CSV clause}.
+	 *
+	 * @param clauses A list of clauses, must not be null
+	 * @return A statement
+	 * @since TBA
+	 */
+	@NotNull
+	static Statement usingPeriodic(Integer batchSize, @NotNull List<Clause> clauses) {
+
+		Assertions.notNull(clauses, "Clauses must not be null.");
+		Assertions.isTrue(!clauses.isEmpty(), "Clauses must not be empty.");
+		Assertions.isInstanceOf(LoadCSV.class, clauses.get(0), "First clause must be a LOAD CSV clause.");
+		return new ClausesBasedStatement(clauses, new UsingPeriodicCommit(batchSize));
 	}
 
 	/**

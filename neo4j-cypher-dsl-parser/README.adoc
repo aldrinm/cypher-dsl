@@ -1,5 +1,8 @@
 = TCK for Cypher-DSL Parser
 
+Most of the examples / test cases here use the default renderer that always escapes all names.
+This is unrelated to the actual parsing and can be turned of when rendering the Cypher-DSL-AST.
+
 == Nodes
 
 Nodes can be parsed and used in constructions of queries for example.
@@ -235,6 +238,7 @@ RETURN empty, 'literal_that_is_not_returned';
 MATCH p=(start)-[*]->(finish)
 WHERE start.name = 'A' AND finish.name = 'D'
 RETURN p;
+MATCH (person:Person) WHERE person.firstname STARTS WITH 'And' RETURN person;
 ----
 
 [[statements-output]]
@@ -271,6 +275,90 @@ WITH [1, 2] AS a, [3, 4] AS b UNWIND (a + b) AS x RETURN x
 WITH [[1, 2], [3, 4], 5] AS nested UNWIND nested AS x UNWIND x AS y RETURN y
 UNWIND [] AS empty RETURN empty, 'literal_that_is_not_returned'
 MATCH p = (start)-[*]->(finish) WHERE (start.name = 'A' AND finish.name = 'D') RETURN p
+MATCH (person:`Person`) WHERE person.firstname STARTS WITH 'And' RETURN person
+----
+
+=== Hints
+
+You can also use hints:
+
+[[statements-input-hints]]
+.Output
+[source,cypher,separated=true]
+----
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411}) RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING INDEX p:Pioneer(born)
+RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING INDEX i:INVENTED_BY(year)
+RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING INDEX s:Scientist(born)
+USING INDEX cc:Country(formed)
+RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING SCAN s:Scientist
+RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING SCAN i:INVENTED_BY
+RETURN *;
+MATCH (s:Scientist {born: 1850})-[:RESEARCHED]->(sc:Science)<-[i:INVENTED_BY {year: 560}]-(p:Pioneer {born: 525})-[:LIVES_IN]->(c:City)-[:PART_OF]->(cc:Country {formed: 411})
+USING INDEX s:Scientist(born)
+USING INDEX cc:Country(formed)
+USING JOIN ON p
+RETURN *;
+MATCH (s:Scientist {born: 1850})
+OPTIONAL MATCH (s)-[:RESEARCHED]->(sc:Science)
+USING JOIN ON s
+RETURN *;
+----
+
+[[statements-output-hints]]
+.Output
+[source,cypher]
+----
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING INDEX p:`Pioneer`(born) RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING INDEX i:`INVENTED_BY`(year) RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING INDEX s:`Scientist`(born) USING INDEX cc:`Country`(formed) RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING SCAN s:`Scientist` RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING SCAN i:`INVENTED_BY` RETURN *
+MATCH (s:`Scientist` {born: 1850})-[:`RESEARCHED`]->(sc:`Science`)<-[i:`INVENTED_BY` {year: 560}]-(p:`Pioneer` {born: 525})-[:`LIVES_IN`]->(c:`City`)-[:`PART_OF`]->(cc:`Country` {formed: 411}) USING INDEX s:`Scientist`(born) USING INDEX cc:`Country`(formed) USING JOIN ON p RETURN *
+MATCH (s:`Scientist` {born: 1850}) OPTIONAL MATCH (s)-[:`RESEARCHED`]->(sc:`Science`) USING JOIN ON s RETURN *
+----
+
+Of course, `USING PERIODIC` is supported, too:
+
+[[statements-input-hints-periodic]]
+.Output
+[source,cypher,alwaysEscape=false,separated=true]
+----
+USING PERIODIC COMMIT LOAD CSV FROM 'file:///artists.csv' AS line
+CREATE (:Artist {name: line[1], year: toInteger(line[2])});
+USING PERIODIC COMMIT 500 LOAD CSV FROM 'file:///artists.csv' AS line
+CREATE (:Artist {name: line[1], year: toInteger(line[2])});
+LOAD CSV FROM 'file:///artists-with-escaped-char.csv' AS line
+CREATE (a:Artist {name: line[1], year: toInteger(line[2])})
+RETURN
+  a.name AS name,
+  a.year AS year,
+  size(a.name) AS size;
+LOAD CSV FROM 'file:///artists.csv' AS line
+RETURN linenumber() AS number, line;
+LOAD CSV FROM 'file:///artists.csv' AS line
+RETURN DISTINCT file() AS path;
+----
+
+[[statements-output-hints-periodic]]
+.Output
+[source,cypher,alwaysEscape=false]
+----
+USING PERIODIC COMMIT LOAD CSV FROM 'file:///artists.csv' AS line CREATE (:Artist {name: line[1], year: toInteger(line[2])})
+USING PERIODIC COMMIT 500 LOAD CSV FROM 'file:///artists.csv' AS line CREATE (:Artist {name: line[1], year: toInteger(line[2])})
+LOAD CSV FROM 'file:///artists-with-escaped-char.csv' AS line CREATE (a:Artist {name: line[1], year: toInteger(line[2])}) RETURN a.name AS name, a.year AS year, size(a.name) AS size
+LOAD CSV FROM 'file:///artists.csv' AS line RETURN linenumber() AS number, line
+LOAD CSV FROM 'file:///artists.csv' AS line RETURN DISTINCT file() AS path
 ----
 
 == Expressions
